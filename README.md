@@ -25,7 +25,7 @@ everyday. Some examples of how a struct name is converted to a TOML field, envir
 line parameter. Environment variables are prefixed with your app name, in this case `courier`:
 
 | Struct Field  | TOML Field       | Environment Variable         | Command line Parameter |
---------------------------------------------------------------------------------------------
+|---------------|------------------|------------------------------|------------------------|
 | AWSRegion     | aws_region       | COURIER_AWS_REGION           | aws-region             |
 | EC2InstanceID | ec2_instance_id  | COURIER_EC2_INSTANCE_ID      | ec2-instance-id        |
 | DB            | db               | COURIER_DB                   | db                     |
