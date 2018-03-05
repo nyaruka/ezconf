@@ -22,7 +22,9 @@ in your struct of the types:
 
 It converts all CamelCase fields to snake_case in a manner that is compatible with the acronums we work with
 everyday. Some examples of how a struct name is converted to a TOML field, environment variable and command
-line parameter. Environment variables are prefixed with your app name, in this case `courier`:
+line parameter. 
+
+Environment variables are prefixed with your app name, in this case `courier`:
 
 | Struct Field  | TOML Field       | Environment Variable         | Command line Parameter |
 |---------------|------------------|------------------------------|------------------------|
@@ -93,8 +95,8 @@ func main(){
     )
     ezConf.MustReadAll()
 
-    // our settings will now be in your config, if any error occurred, then we will exit with a description of 
-    // the error and sample usage.
+    // our settings will now be in your config, if any error occurred, then we will exit
+    // with a description of the error and sample usage.
     fmt.Printf("final settings:\n%+v", config)
 
     // if we wish we can additionally validate your config using your favorite validation library
