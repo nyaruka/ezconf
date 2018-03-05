@@ -22,16 +22,14 @@ in your struct of the types:
 
 It converts all CamelCase fields to snake_case in a manner that is compatible with the acronums we work with
 everyday. Some examples of how a struct name is converted to a TOML field, environment variable and command
-line parameter. Environment variables are prefixed with your app name, in this case `COURIER`:
+line parameter. Environment variables are prefixed with your app name, in this case `courier`:
 
---------------------------------------------------------------------------------------------
 | Struct Field  | TOML Field       | Environment Variable         | Command line Parameter |
 --------------------------------------------------------------------------------------------
 | AWSRegion     | aws_region       | COURIER_AWS_REGION           | aws-region             |
 | EC2InstanceID | ec2_instance_id  | COURIER_EC2_INSTANCE_ID      | ec2-instance-id        |
 | DB            | db               | COURIER_DB                   | db                     |
 | NumWorkers    | num_workers      | COURIER_NUM_WORKERS          | num-workers            |
---------------------------------------------------------------------------------------------
 
 EZConf will also automatically create the appropriate flags and help based on your struct definition, for example:
 
