@@ -86,7 +86,11 @@ func main(){
     }
 
     // create our ezConf object and read all your settings
-    ezConf := ezconf.New(config, "courier", "Courier - a fast message broker for IP and SMS messages", []string{"courier.toml"})
+    ezConf := ezconf.New(
+        config, 
+        "courier", "Courier - a fast message broker for IP and SMS messages", 
+        []string{"courier.toml"}
+    )
     ezConf.MustReadAll()
 
     // our settings will now be in your config, if any error occurred, then we will exit with a description of 
