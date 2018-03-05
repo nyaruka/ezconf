@@ -114,7 +114,7 @@ func NewLoader(config interface{}, name string, description string, files []stri
 func (ez *EZLoader) MustLoad() {
 	err := ez.Load()
 	if err != nil {
-		fmt.Printf("Error while reading configuration: %s", err.Error())
+		fmt.Printf("Error while reading configuration: %s\n\n", err.Error())
 		ez.flags.Usage()
 		os.Exit(1)
 	}
@@ -195,7 +195,7 @@ func printFields(header string, fields *ezFields) {
 	fmt.Printf("CONF: %s\n", header)
 	for _, k := range fields.keys {
 		field := fields.fields[k]
-		fmt.Printf("CONF: % 24s = %v\n", field.Name(), field.Value())
+		fmt.Printf("CONF: % 40s = %v\n", field.Name(), field.Value())
 	}
 	fmt.Println()
 }
@@ -203,7 +203,7 @@ func printFields(header string, fields *ezFields) {
 func printValues(header string, values map[string]ezValue) {
 	fmt.Printf("CONF: %s\n", header)
 	for _, v := range values {
-		fmt.Printf("CONF: % 24s = %s\n", v.rawKey, v.value)
+		fmt.Printf("CONF: % 40s = %s\n", v.rawKey, v.value)
 	}
 	fmt.Println()
 }

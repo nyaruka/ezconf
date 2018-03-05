@@ -28,19 +28,19 @@ func buildEnvUsage(name string, fields *ezFields) string {
 		env := strings.ToUpper(fmt.Sprintf("%s_%s", name, snake))
 		switch f.Value().(type) {
 		case int, int8, int16, int32, int64:
-			usage.WriteString(fmt.Sprintf("    % 24s - int\n", env))
+			usage.WriteString(fmt.Sprintf("    % 40s - int\n", env))
 
 		case uint, uint8, uint16, uint32, uint64:
-			usage.WriteString(fmt.Sprintf("    % 24s - uint\n", env))
+			usage.WriteString(fmt.Sprintf("    % 40s - uint\n", env))
 
 		case float32, float64:
-			usage.WriteString(fmt.Sprintf("    % 24s - float\n", env))
+			usage.WriteString(fmt.Sprintf("    % 40s - float\n", env))
 
 		case bool:
-			usage.WriteString(fmt.Sprintf("    % 24s - bool\n", env))
+			usage.WriteString(fmt.Sprintf("    % 40s - bool\n", env))
 
 		case string:
-			usage.WriteString(fmt.Sprintf("    % 24s - string\n", env))
+			usage.WriteString(fmt.Sprintf("    % 40s - string\n", env))
 		}
 	}
 	return usage.String()
