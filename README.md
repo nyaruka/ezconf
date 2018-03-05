@@ -1,6 +1,6 @@
 # EZConf
 
-EZConf provides a simple way of reading configuration settings from three sources, in order of priority (highest priority last):
+EZConf provides a simple way of reading configuration settings from four sources, in order of priority (each level is higher priority than the previous ones):
  
  1. The default settings for your app
  2. A TOML file with settings
