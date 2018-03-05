@@ -37,28 +37,27 @@ EZConf will also automatically create the appropriate flags and help based on yo
 
 ```
 % courier -help
-
 Courier - a fast message broker for IP and SMS messages
 
 Usage of courier:
-  -aws-region
-    	the aws region that S3 buckets are in
+  -aws-region string
+    	the aws region that S3 buckets are in (default "us-west-2")
   -db string
-    	the url describing how to connect to the database (default "postgres://foo@bar.com/textit")
+    	the url describing how to connect to the database (default "postgres://user@secret:rds-internal.foo.bar/courier")
+  -debug-conf
+    	print where config values are coming from
   -ec2-instance-id string
-    	the id of the ec2 instance we are running on
-  -num-workers int
-    	the number of workers to start
+    	the id of the ec2 instance we are running on (default "i-12355111134a")
   -help
     	print usage information
-  -debug-conf
-    	show where all configuration variables are coming from
+  -num-workers int
+    	the number of workers to start (default 32)
 
 Environment variables:
-        COURIER_AWS_REGION - string
-                COURIER_DB - string
-   COURIER_EC2_INSTANCE_ID - string
-       COURIER_NUM_WORKERS - int
+          COURIER_AWS_REGION - string
+                  COURIER_DB - string
+     COURIER_EC2_INSTANCE_ID - string
+         COURIER_NUM_WORKERS - int
 ```
 
 ## Example
@@ -68,37 +67,41 @@ Environment variables:
 ```golang
 package main
 
-import "github.com/nyaruka/ezconf"
+import (
+	"fmt"
 
-// First define our config struct,we use the `help` tag to add usage help text to each field
+	"github.com/nyaruka/ezconf"
+)
+
+// Config is our apps configuration struct, we can use the `help` tag to add usage information
 type Config struct {
-    AWSRegion string     `help:"the aws region that S3 buckets are in"`
-    DB string            `help:"the url describing how to connect to the database"`
-    EC2InstanceID string `help:"the id of the ec2 instance we are running on"`
-    NumWorkers int       `help:"the number of workers to start"`
+	AWSRegion     string `help:"the aws region that S3 buckets are in"`
+	DB            string `help:"the url describing how to connect to the database"`
+	EC2InstanceID string `help:"the id of the ec2 instance we are running on"`
+	NumWorkers    int    `help:"the number of workers to start"`
 }
 
-func main(){
-    // instantiate our config
-    config := &Config{
-        AWSRegion: "us-west-2",
-        DB: "postgres://user@secret:rds-internal.foo.bar/courier",
-        EC2InstanceID: "i-12355111134a",
-        NumWorkers: 32,
-    }
+func main() {
+	// instantiate our config
+	config := &Config{
+		AWSRegion:     "us-west-2",
+		DB:            "postgres://user@secret:rds-internal.foo.bar/courier",
+		EC2InstanceID: "i-12355111134a",
+		NumWorkers:    32,
+	}
 
-    // create our ezConf object and read all your settings
-    ezConf := ezconf.New(
-        config, 
-        "courier", "Courier - a fast message broker for IP and SMS messages", 
-        []string{"courier.toml"}
-    )
-    ezConf.MustReadAll()
+	// create our ezConf object and read all our settings
+	ezConf := ezconf.New(
+		config,
+		"courier", "Courier - a fast message broker for IP and SMS messages",
+		[]string{"courier.toml"},
+	)
+	ezConf.MustReadAll()
 
-    // our settings will now be in your config, if any error occurred, then we will exit
-    // with a description of the error and sample usage.
-    fmt.Printf("final settings:\n%+v", config)
+	// our settings will now be in our config, if any error occurred, then we will exit
+	// with a description of the error and sample usage.
+	fmt.Printf("Final Settings:\n%+v\n", *config)
 
-    // if we wish we can additionally validate your config using your favorite validation library
+	// if we wish we can additionally validate our config using our favorite validation library
 }
 ```

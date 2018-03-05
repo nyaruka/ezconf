@@ -78,6 +78,9 @@ type EZConf struct {
 
 	// overriden in tests
 	args []string
+
+	// we hang onto this to print usage where needed
+	flags *flag.FlagSet
 }
 
 func New(config interface{}, name string, description string, files []string) *EZConf {
@@ -90,6 +93,15 @@ func New(config interface{}, name string, description string, files []string) *E
 	}
 }
 
+func (ez *EZConf) MustReadAll() {
+	err := ez.ReadAll()
+	if err != nil {
+		fmt.Printf("Error while reading configuration: %s", err.Error())
+		ez.flags.Usage()
+		os.Exit(1)
+	}
+}
+
 func (ez *EZConf) ReadAll() error {
 	// first build our mapping of name snake_case -> structs.Field
 	fields, err := buildFields(ez.config)
@@ -98,23 +110,23 @@ func (ez *EZConf) ReadAll() error {
 	}
 
 	// build our flags
-	flags := buildFlags(ez.name, ez.description, fields, flag.ExitOnError)
+	ez.flags = buildFlags(ez.name, ez.description, fields, flag.ExitOnError)
 
 	// parse them
-	flagValues, err := parseFlags(flags, ez.args)
+	flagValues, err := parseFlags(ez.flags, ez.args)
 	if err != nil {
 		return err
 	}
 
 	// if they asked for usage, show it
-	if flags.Lookup("help").Value.String() == "true" {
-		flags.Usage()
+	if ez.flags.Lookup("help").Value.String() == "true" {
+		ez.flags.Usage()
 		os.Exit(1)
 	}
 
 	// if they asked for config debug, show it
 	debug := false
-	if flags.Lookup("debug-conf").Value.String() == "true" {
+	if ez.flags.Lookup("debug-conf").Value.String() == "true" {
 		debug = true
 	}
 
