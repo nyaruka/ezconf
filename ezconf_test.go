@@ -128,8 +128,8 @@ func TestSetValue(t *testing.T) {
 }
 
 func TestEndToEnd(t *testing.T) {
-	at := allTypes{}
-	conf := New("foo", "description", &at, []string{"missing.toml", "fields.toml", "simple.toml"})
+	at := &allTypes{}
+	conf := New(at, "foo", "description", []string{"missing.toml", "fields.toml", "simple.toml"})
 	conf.args = []string{"-my-int=48", "-debug-conf"}
 	err := conf.ReadAll()
 	if err != nil {

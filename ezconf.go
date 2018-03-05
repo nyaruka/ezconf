@@ -80,7 +80,7 @@ type EZConf struct {
 	args []string
 }
 
-func New(name string, description string, config interface{}, files []string) *EZConf {
+func New(config interface{}, name string, description string, files []string) *EZConf {
 	return &EZConf{
 		name:        name,
 		description: description,
