@@ -82,7 +82,7 @@ type Config struct {
 }
 
 func main() {
-	// instantiate our config
+	// instantiate our config with our defaults
 	config := &Config{
 		AWSRegion:     "us-west-2",
 		DB:            "postgres://user@secret:rds-internal.foo.bar/courier",
