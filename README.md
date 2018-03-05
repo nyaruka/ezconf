@@ -20,9 +20,9 @@ in your struct of the types:
  * bool
  * string
 
-It converts all CamelCase fields to snake_case in a manner that is compatible with the acronums we work with
+It converts all CamelCase fields to snake_case in a manner that is compatible with the acronyms we work with
 everyday. Some examples of how a struct name is converted to a TOML field, environment variable and command
-line parameter. 
+line parameter can be found below. 
 
 Environment variables are prefixed with your app name, in this case `courier`:
 
