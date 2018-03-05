@@ -70,7 +70,13 @@ func CamelToSnake(camel string) string {
 	return strings.ToLower(strings.Join(snakes, "_"))
 }
 
-type EZConf struct {
+// EZLoader allows you to load your configuration from four sources, in order of priority (later overrides ealier):
+//  1. The default values of your configuration struct
+//  2. TOML files you specify (optional)
+//  3. Set environment variables
+//  4. Command line parameters
+//
+type EZLoader struct {
 	name        string
 	description string
 	config      interface{}
@@ -83,8 +89,13 @@ type EZConf struct {
 	flags *flag.FlagSet
 }
 
-func New(config interface{}, name string, description string, files []string) *EZConf {
-	return &EZConf{
+// NewLoader creates a new EZLoader for the passed in configuration. `config` should be a pointer to a struct.
+// `name` and `description` are used to build environment variables and help parameters. The list of files
+// can be nil, or can contain optional files to read TOML configuration from in priority order. The first file
+// found and parsed will end parsing of others, but there is no requirement that any file is found.
+//
+func NewLoader(config interface{}, name string, description string, files []string) *EZLoader {
+	return &EZLoader{
 		name:        name,
 		description: description,
 		config:      config,
@@ -93,8 +104,15 @@ func New(config interface{}, name string, description string, files []string) *E
 	}
 }
 
-func (ez *EZConf) MustReadAll() {
-	err := ez.ReadAll()
+// MustLoad loads our configuration from our sources in the order of:
+//   1. TOML files
+//   2. Environment variables
+//   3. Command line parameters
+//
+// If any error is encountered, the program will exit reporting the error and showing usage.
+//
+func (ez *EZLoader) MustLoad() {
+	err := ez.Load()
 	if err != nil {
 		fmt.Printf("Error while reading configuration: %s", err.Error())
 		ez.flags.Usage()
@@ -102,7 +120,14 @@ func (ez *EZConf) MustReadAll() {
 	}
 }
 
-func (ez *EZConf) ReadAll() error {
+// Load loads our configuration from our sources in the order of:
+//   1. TOML files
+//   2. Environment variables
+//   3. Command line parameters
+//
+// If any error is encountered it is returned for the caller to process.
+//
+func (ez *EZLoader) Load() error {
 	// first build our mapping of name snake_case -> structs.Field
 	fields, err := buildFields(ez.config)
 	if err != nil {

@@ -90,18 +90,20 @@ func main() {
 		NumWorkers:    32,
 	}
 
-	// create our ezConf object and read all our settings
-	ezConf := ezconf.New(
+	// create our loader object, configured with configuration struct (must be a pointer), our name
+	// and description, as well as any files we want to search for
+	loader := ezconf.NewLoader(
 		config,
 		"courier", "Courier - a fast message broker for IP and SMS messages",
 		[]string{"courier.toml"},
 	)
-	ezConf.MustReadAll()
 
-	// our settings will now be in our config, if any error occurred, then we will exit
-	// with a description of the error and sample usage.
+	// load our configuration, exiting if we encounter any errors
+	loader.MustLoad()
+
+	// our settings have now been loaded into our config struct
 	fmt.Printf("Final Settings:\n%+v\n", *config)
 
-	// if we wish we can additionally validate our config using our favorite validation library
+	// if we wish we can also validate our config using our favorite validation library
 }
 ```

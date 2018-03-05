@@ -129,9 +129,9 @@ func TestSetValue(t *testing.T) {
 
 func TestEndToEnd(t *testing.T) {
 	at := &allTypes{}
-	conf := New(at, "foo", "description", []string{"missing.toml", "fields.toml", "simple.toml"})
+	conf := NewLoader(at, "foo", "description", []string{"missing.toml", "fields.toml", "simple.toml"})
 	conf.args = []string{"-my-int=48", "-debug-conf"}
-	err := conf.ReadAll()
+	err := conf.Load()
 	if err != nil {
 		t.Errorf("received error reading config: %s", err)
 		return
