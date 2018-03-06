@@ -1,4 +1,4 @@
-# EZConf
+# EZConf [![Build Status](https://travis-ci.org/nyaruka/ezconf.svg?branch=master)](https://travis-ci.org/nyaruka/ezconf) [![codecov](https://codecov.io/gh/nyaruka/ezconf/branch/master/graph/badge.svg)](https://codecov.io/gh/nyaruka/ezconf) [![Go Report Card](https://goreportcard.com/badge/github.com/nyaruka/ezconf)](https://goreportcard.com/report/github.com/nyaruka/ezconf)
 
 EZConf provides a simple way of reading configuration settings from four sources, in order of priority (each level is higher priority than the previous ones):
  
