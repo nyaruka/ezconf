@@ -109,7 +109,7 @@ func TestSetValue(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		values := map[string]ezValue{tc.key: ezValue{tc.key, tc.value}}
+		values := map[string]ezValue{tc.key: {tc.key, tc.value}}
 		err := setValues(fields, values)
 		if !tc.hasErr && err != nil {
 			t.Errorf("unexpected error setting %s to %s: %s", tc.key, tc.value, err)
