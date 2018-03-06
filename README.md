@@ -12,7 +12,7 @@ with the defaults for your app. You can then pass that struct to EZConf and read
 the sources above.
 
 EZConf will automatically parse command line parameters and environment variables for all top level fields
-in your struct of the types:
+in your struct of the following types:
 
  * int, int8, int16, int32, int64
  * uint, uint8, uint16, uint32, uint64
