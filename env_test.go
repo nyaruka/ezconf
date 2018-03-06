@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"unicode"
 )
 
 func TestParseEnv(t *testing.T) {
@@ -38,6 +39,15 @@ func TestParseEnv(t *testing.T) {
 	}
 }
 
+// utility func to remove spaces, newlines etc..
+func stripWhitespace(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return -1
+		}
+		return r
+	}, s)
+}
 func TestBuildUsage(t *testing.T) {
 	fields := toFields(t, allKinds{})
 	expected := `Environment variables:
@@ -47,7 +57,7 @@ func TestBuildUsage(t *testing.T) {
                FOO_MY_STRING - string
                  FOO_MY_UINT - uint`
 	usage := buildEnvUsage("foo", fields)
-	if strings.Trim(usage, " \n\r\t") != strings.Trim(expected, " \n\r\t") {
-		t.Errorf("Unexpected usage: %s", usage)
+	if stripWhitespace(usage) != stripWhitespace(expected) {
+		t.Errorf("Unexpected usage: %s\n%s\n", usage, expected)
 	}
 }
