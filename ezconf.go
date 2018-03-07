@@ -159,18 +159,10 @@ func (ez *EZLoader) Load() error {
 		printFields("Default overridable values:", fields)
 	}
 
-	if debug {
-		printValues("FLAG VALUES:", flagValues)
-	}
-
 	// read any found file into our config
 	err = parseTOMLFiles(ez.config, ez.files, debug)
 	if err != nil {
 		return err
-	}
-
-	if debug {
-		printValues("FLAG VALUES:", flagValues)
 	}
 
 	if debug {
