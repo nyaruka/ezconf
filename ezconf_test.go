@@ -2,6 +2,7 @@ package ezconf
 
 import (
 	"fmt"
+	"os"
 	"testing"
 )
 
@@ -135,5 +136,46 @@ func TestEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Errorf("received error reading config: %s", err)
 		return
+	}
+}
+
+func TestPriority(t *testing.T) {
+	at := &allTypes{MyInt: 16}
+	conf := NewLoader(at, "foo", "description", []string{"missing.toml", "fields.toml", "simple.toml"})
+	conf.args = []string{}
+	conf.Load()
+
+	if at.MyInt != 96 {
+		t.Errorf("MyInt should be 96 from TOML is %d instead", at.MyInt)
+	}
+
+	// override with environment variable
+	conf = NewLoader(at, "foo", "description", []string{"missing.toml", "fields.toml", "simple.toml"})
+	conf.args = []string{}
+	os.Setenv("FOO_MY_INT", "48")
+	conf.Load()
+
+	if at.MyInt != 48 {
+		t.Errorf("MyInt should be 48 from Env is %d instead", at.MyInt)
+	}
+
+	// override with args
+	conf = NewLoader(at, "foo", "description", []string{"missing.toml", "fields.toml", "simple.toml"})
+	conf.args = []string{"-my-int=56"}
+	os.Setenv("FOO_MY_INT", "48")
+	conf.Load()
+
+	if at.MyInt != 56 {
+		t.Errorf("MyInt should be 56 from args is %d instead", at.MyInt)
+	}
+
+	// clear our env, args should take precedence now even though we are setting to the same as our new default
+	os.Setenv("FOO_MY_INT", "")
+	conf = NewLoader(at, "foo", "description", []string{"missing.toml", "fields.toml", "simple.toml"})
+	conf.args = []string{"-my-int=56"}
+	conf.Load()
+
+	if at.MyInt != 56 {
+		t.Errorf("MyInt should be 56 from args is %d instead", at.MyInt)
 	}
 }
