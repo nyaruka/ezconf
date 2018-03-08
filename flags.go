@@ -89,8 +89,8 @@ func buildFlags(name string, description string, fields *ezFields, errorHandling
 		case string:
 			flags.String(flagName, f.Value().(string), help)
 
-		case time.Duration:
-			flags.String(flagName, v.String(), help)
+		case time.Time:
+			flags.String(flagName, formatDatetime(f.Value().(time.Time)), help)
 		}
 	}
 

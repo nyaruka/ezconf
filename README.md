@@ -19,6 +19,7 @@ in your struct of the following types:
  * float32, float64
  * bool
  * string
+ * datetimes in the following formats: `2018-04-02`, `15:30:02`, `2018-04-02T15:30:02.000` and `2018-04-03T05:30:00.123+07:00`
 
 It converts all CamelCase fields to snake_case in a manner that is compatible with the acronyms we work with
 everyday. Some examples of how a struct name is converted to a TOML field, environment variable and command

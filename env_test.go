@@ -51,7 +51,8 @@ func stripWhitespace(s string) string {
 func TestBuildUsage(t *testing.T) {
 	fields := toFields(t, allKinds{})
 	expected := `Environment variables:
-                 FOO_MY_BOOL - bool
+				 FOO_MY_BOOL - bool
+             FOO_MY_DATETIME - datetime
                 FOO_MY_FLOAT - float
                   FOO_MY_INT - int
                FOO_MY_STRING - string

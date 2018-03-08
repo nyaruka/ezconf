@@ -3,14 +3,16 @@ package ezconf
 import (
 	"flag"
 	"testing"
+	"time"
 )
 
 func TestBuildFlags(t *testing.T) {
 	as := allTypes{
-		MyInt:     32,
-		MyFloat32: 16,
-		MyBool:    true,
-		MyString:  "foobar",
+		MyInt:      32,
+		MyFloat32:  16,
+		MyBool:     true,
+		MyString:   "foobar",
+		MyDatetime: time.Date(2018, 3, 5, 12, 30, 0, 0, time.UTC),
 	}
 	fs := buildFlags("foo", "description", toFields(t, as), flag.ContinueOnError)
 
@@ -23,6 +25,7 @@ func TestBuildFlags(t *testing.T) {
 		{"my-float32", "set value for my_float32", "16"},
 		{"my-bool", "set value for my_bool", "true"},
 		{"my-string", "set value for my_string", "foobar"},
+		{"my-datetime", "set value for my_datetime", "2018-03-05T12:30:00Z"},
 	}
 
 	for _, ef := range flags {
@@ -53,6 +56,7 @@ func TestBuildFlags(t *testing.T) {
 		"-my-string=foozap",
 		"-my-int32=65",
 		"-my-bool=false",
+		"-my-datetime=2018-04-05T12:30:00Z",
 	}
 	values, err := parseFlags(fs, args)
 	if err != nil {
@@ -68,6 +72,7 @@ func TestBuildFlags(t *testing.T) {
 		{"my_int32", "my-int32", "65"},
 		{"my_bool", "my-bool", "false"},
 		{"my_string", "my-string", "foozap"},
+		{"my_datetime", "my-datetime", "2018-04-05T12:30:00Z"},
 	}
 
 	for _, tc := range tcs {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 func parseEnv(name string, fields *ezFields) map[string]ezValue {
@@ -41,6 +42,9 @@ func buildEnvUsage(name string, fields *ezFields) string {
 
 		case string:
 			usage.WriteString(fmt.Sprintf("    % 40s - string\n", env))
+
+		case time.Time:
+			usage.WriteString(fmt.Sprintf("    % 40s - datetime\n", env))
 		}
 	}
 	return usage.String()

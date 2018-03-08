@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/fatih/structs"
@@ -208,6 +209,16 @@ func printValues(header string, values map[string]ezValue) {
 	fmt.Println()
 }
 
+// TOML supported datetime formats
+var timeFormats = []string{
+	"2006-01-02T15:04:05.999999999Z07:00",
+	"2006-01-02T15:04:05.999999999",
+}
+
+func formatDatetime(t time.Time) string {
+	return t.Format(timeFormats[0])
+}
+
 func setValues(fields *ezFields, values map[string]ezValue) error {
 	// iterates all passed in values, attempting to set them, returning an error if
 	// there are any type mismatches
@@ -305,6 +316,30 @@ func setValues(fields *ezFields, values map[string]ezValue) error {
 
 		case string:
 			f.Set(value)
+
+		case time.Time:
+			var t time.Time
+			var err error
+
+			switch {
+			case !strings.Contains(value, ":"):
+				t, err = time.Parse("2006-01-02", value)
+			case !strings.Contains(value, "-"):
+				t, err = time.Parse("15:04:05.999999999", value)
+			default:
+				for _, format := range timeFormats {
+					t, err = time.Parse(format, value)
+					if err == nil {
+						break
+					}
+				}
+			}
+
+			if err != nil {
+				return err
+			}
+
+			f.Set(t)
 		}
 	}
 	return nil
@@ -320,7 +355,8 @@ func buildFields(config interface{}) (*ezFields, error) {
 				uint, uint8, uint16, uint32, uint64,
 				float32, float64,
 				bool,
-				string:
+				string,
+				time.Time:
 				name := CamelToSnake(f.Name())
 				dupe, found := fields[name]
 				if found {
