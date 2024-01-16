@@ -2,6 +2,7 @@ package ezconf
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"testing"
 	"time"
@@ -34,6 +35,7 @@ type allTypes struct {
 	MyBool     bool
 	MyString   string
 	MyDatetime time.Time
+	MyLogLevel slog.Level
 }
 
 func toFields(t *testing.T, s interface{}) *ezFields {
@@ -116,6 +118,10 @@ func TestSetValue(t *testing.T) {
 		{"my_datetime", "2018-04-03T05:30:00.123+07:00", false, "2018-04-03 05:30:00.123 +0700 +0700"},
 		{"my_datetime", "notdate", true, ""},
 
+		{"my_log_level", "info", false, "INFO"},
+		{"my_log_level", "ERROR", false, "ERROR"},
+		{"my_log_level", "crazy", true, ""},
+
 		{"unknown", "", true, ""},
 	}
 
@@ -139,9 +145,11 @@ func TestSetValue(t *testing.T) {
 func TestEndToEnd(t *testing.T) {
 	at := &allTypes{}
 	conf := NewLoader(at, "foo", "description", []string{"testdata/missing.toml", "testdata/fields.toml", "testdata/simple.toml"})
-	conf.args = []string{"-my-int=48", "-debug-conf"}
+	conf.args = []string{"-my-int=48", "-my-log-level=error", "-debug-conf"}
 	err := conf.Load()
 	assert.NoError(t, err)
+	assert.Equal(t, 48, at.MyInt)
+	assert.Equal(t, slog.LevelError, at.MyLogLevel)
 }
 
 func TestPriority(t *testing.T) {

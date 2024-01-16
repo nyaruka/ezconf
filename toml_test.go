@@ -1,6 +1,7 @@
 package ezconf
 
 import (
+	"log/slog"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ type simpleStruct struct {
 	MyInt      int
 	MyBool     bool
 	MyDatetime time.Time
+	MyLogLevel slog.Level
 
 	MyInts []int
 
