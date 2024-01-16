@@ -4,6 +4,8 @@ import (
 	"flag"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBuildFlags(t *testing.T) {
@@ -81,11 +83,8 @@ func TestBuildFlags(t *testing.T) {
 			t.Errorf("did not find value with key: %s", tc.key)
 			continue
 		}
-		if v.rawKey != tc.rawKey {
-			t.Errorf("raw key: %s does not match expected: %s", v.rawKey, tc.rawKey)
-		}
-		if v.value != tc.value {
-			t.Errorf("value: %s does not match expected: %s", v.value, tc.value)
-		}
+
+		assert.Equal(t, tc.rawKey, v.rawKey, "raw key mismatch for key %s", tc.key)
+		assert.Equal(t, tc.value, v.value, "value mismatch for key %s", tc.key)
 	}
 }

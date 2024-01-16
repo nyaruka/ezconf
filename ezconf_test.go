@@ -5,6 +5,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type allKinds struct {
@@ -62,9 +64,7 @@ func TestCamelToSnake(t *testing.T) {
 
 	for _, tc := range tests {
 		snake := CamelToSnake(tc.camel)
-		if snake != tc.snake {
-			t.Errorf("CamelToSnake of %s = %s instead of %s", tc.camel, snake, tc.snake)
-		}
+		assert.Equal(t, tc.snake, snake, "to snake mismatch for %s", tc.camel)
 	}
 }
 
@@ -123,17 +123,15 @@ func TestSetValue(t *testing.T) {
 		values := map[string]ezValue{tc.key: {tc.key, tc.value}}
 		err := setValues(fields, values)
 		if !tc.hasErr && err != nil {
-			t.Errorf("unexpected error setting %s to %s: %s", tc.key, tc.value, err)
+			assert.NoError(t, err, "unexpected error setting %s to %s", tc.key, tc.value)
 		}
 		if tc.hasErr && err == nil {
-			t.Errorf("expected error setting %s to %s", tc.key, tc.value)
+			assert.Error(t, err, "expected error setting %s to %s", tc.key, tc.value)
 		}
 		field, found := fields.fields[tc.key]
 		if found && !tc.hasErr && err == nil {
 			strValue := fmt.Sprintf("%v", field.Value())
-			if strValue != tc.expected {
-				t.Errorf("value for %s not expected %s instead %s", tc.key, tc.expected, strValue)
-			}
+			assert.Equal(t, tc.expected, strValue)
 		}
 	}
 }
@@ -143,10 +141,7 @@ func TestEndToEnd(t *testing.T) {
 	conf := NewLoader(at, "foo", "description", []string{"testdata/missing.toml", "testdata/fields.toml", "testdata/simple.toml"})
 	conf.args = []string{"-my-int=48", "-debug-conf"}
 	err := conf.Load()
-	if err != nil {
-		t.Errorf("received error reading config: %s", err)
-		return
-	}
+	assert.NoError(t, err)
 }
 
 func TestPriority(t *testing.T) {
@@ -155,9 +150,7 @@ func TestPriority(t *testing.T) {
 	conf.args = []string{}
 	conf.Load()
 
-	if at.MyInt != 96 {
-		t.Errorf("MyInt should be 96 from TOML is %d instead", at.MyInt)
-	}
+	assert.Equal(t, 96, at.MyInt)
 
 	// override with environment variable
 	conf = NewLoader(at, "foo", "description", []string{"testdata/missing.toml", "testdata/fields.toml", "testdata/simple.toml"})
@@ -165,9 +158,7 @@ func TestPriority(t *testing.T) {
 	os.Setenv("FOO_MY_INT", "48")
 	conf.Load()
 
-	if at.MyInt != 48 {
-		t.Errorf("MyInt should be 48 from Env is %d instead", at.MyInt)
-	}
+	assert.Equal(t, 48, at.MyInt)
 
 	// override with args
 	conf = NewLoader(at, "foo", "description", []string{"testdata/missing.toml", "testdata/fields.toml", "testdata/simple.toml"})
@@ -175,9 +166,7 @@ func TestPriority(t *testing.T) {
 	os.Setenv("FOO_MY_INT", "48")
 	conf.Load()
 
-	if at.MyInt != 56 {
-		t.Errorf("MyInt should be 56 from args is %d instead", at.MyInt)
-	}
+	assert.Equal(t, 56, at.MyInt)
 
 	// clear our env, args should take precedence now even though we are setting to the same as our new default
 	os.Setenv("FOO_MY_INT", "")
@@ -185,7 +174,5 @@ func TestPriority(t *testing.T) {
 	conf.args = []string{"-my-int=56"}
 	conf.Load()
 
-	if at.MyInt != 56 {
-		t.Errorf("MyInt should be 56 from args is %d instead", at.MyInt)
-	}
+	assert.Equal(t, 56, at.MyInt)
 }

@@ -2,10 +2,11 @@ package ezconf
 
 import (
 	"os"
-	"reflect"
 	"strings"
 	"testing"
 	"unicode"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseEnv(t *testing.T) {
@@ -29,26 +30,26 @@ func TestParseEnv(t *testing.T) {
 		for k, v := range tc.env {
 			os.Setenv(k, v)
 		}
+
 		val := parseEnv("foo", tc.fields)
-		if !reflect.DeepEqual(val, tc.expected) {
-			t.Errorf("parseEnv failed for env: %s, expected: %s, got: %s", tc.env, tc.expected, val)
-		}
+		assert.Equal(t, tc.expected, val, "parseEnv failed for env: %s", tc.env)
+
 		for k := range tc.env {
 			os.Setenv(k, "")
 		}
 	}
 }
 
-// utility func to remove spaces, newlines etc..
-func stripWhitespace(s string) string {
-	return strings.Map(func(r rune) rune {
-		if unicode.IsSpace(r) {
-			return -1
-		}
-		return r
-	}, s)
-}
 func TestBuildUsage(t *testing.T) {
+	stripWhitespace := func(s string) string {
+		return strings.Map(func(r rune) rune {
+			if unicode.IsSpace(r) {
+				return -1
+			}
+			return r
+		}, s)
+	}
+
 	fields := toFields(t, allKinds{})
 	expected := `Environment variables:
 				 FOO_MY_BOOL - bool
@@ -58,7 +59,6 @@ func TestBuildUsage(t *testing.T) {
                FOO_MY_STRING - string
                  FOO_MY_UINT - uint`
 	usage := buildEnvUsage("foo", fields)
-	if stripWhitespace(usage) != stripWhitespace(expected) {
-		t.Errorf("Unexpected usage: %s\n%s\n", usage, expected)
-	}
+
+	assert.Equal(t, stripWhitespace(expected), stripWhitespace(usage))
 }

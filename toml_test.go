@@ -1,9 +1,10 @@
 package ezconf
 
 import (
-	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type simpleStruct struct {
@@ -21,12 +22,11 @@ type simpleStruct struct {
 func TestParsing(t *testing.T) {
 	s := &simpleStruct{}
 	err := parseTOMLFiles(s, []string{"testdata/notthere.toml", "testdata/simple.toml", "testdata/skipped.toml"}, true)
-	if err != nil {
-		t.Errorf("error encountered parsing: %s", err)
-		return
-	}
 
-	if s.MyInt != 32 || s.MyBool != true || !reflect.DeepEqual(s.MyInts, []int{10, 20, 30}) || s.Nested.NestedInt != 64 || !s.MyDatetime.Equal(time.Date(2018, 4, 3, 5, 30, 0, 0, time.UTC)) {
-		t.Errorf("unexpected parsed value: %+v", s)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, 32, s.MyInt)
+	assert.True(t, s.MyBool)
+	assert.Equal(t, []int{10, 20, 30}, s.MyInts)
+	assert.Equal(t, 64, s.Nested.NestedInt)
+	assert.Equal(t, time.Date(2018, 4, 3, 5, 30, 0, 0, time.UTC), s.MyDatetime)
 }
