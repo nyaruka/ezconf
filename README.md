@@ -1,10 +1,7 @@
-# EZConf 
+# EZConf [![Build Status](https://github.com/nyaruka/ezconf/workflows/CI/badge.svg)](https://github.com/nyaruka/ezconf/actions?query=workflow%3ACI) [![codecov](https://codecov.io/gh/nyaruka/ezconf/branch/main/graph/badge.svg)](https://codecov.io/gh/nyaruka/ezconf) [![Go Report Card](https://goreportcard.com/badge/github.com/nyaruka/ezconf)](https://goreportcard.com/report/github.com/nyaruka/ezconf)
 
-[![Build Status](https://travis-ci.org/nyaruka/ezconf.svg?branch=main)](https://travis-ci.org/nyaruka/ezconf) 
-[![codecov](https://codecov.io/gh/nyaruka/ezconf/branch/main/graph/badge.svg)](https://codecov.io/gh/nyaruka/ezconf) 
-[![Go Report Card](https://goreportcard.com/badge/github.com/nyaruka/ezconf)](https://goreportcard.com/report/github.com/nyaruka/ezconf)
-
-EZConf provides a simple way of reading configuration settings from four sources, in order of priority (each level is higher priority than the previous ones):
+Go library to provide simple way of reading configuration settings from four sources, in order of priority 
+(each level is higher priority than the previous ones):
  
  1. The default settings for your app
  2. A TOML file with settings
@@ -12,10 +9,10 @@ EZConf provides a simple way of reading configuration settings from four sources
  4. Command line parameters mapping to your top level settings
 
 To use it, you only need to create a struct representing the desired configuration and create an instance
-with the defaults for your app. You can then pass that struct to EZConf and read the settings from all 
+with the defaults for your app. You can then pass that struct to the library and read the settings from all 
 the sources above.
 
-EZConf will automatically parse command line parameters and environment variables for all top level fields
+The library will automatically parse command line parameters and environment variables for all top level fields
 in your struct of the following types:
 
  * int, int8, int16, int32, int64
@@ -66,8 +63,6 @@ Environment variables:
 ```
 
 ## Example
-
-
 
 ```golang
 package main

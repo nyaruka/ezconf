@@ -1,0 +1,28 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        go-version: [1.19.x, 1.20.x, 1.21.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Run tests
+      run: go test -p=1 -coverprofile=coverage.text -covermode=atomic ./...
+
+    - name: Upload coverage
+      if: success()
+      uses: codecov/codecov-action@v3
+      with:
+        fail_ci_if_error: true

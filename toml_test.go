@@ -22,7 +22,7 @@ type simpleStruct struct {
 
 func TestParsing(t *testing.T) {
 	s := &simpleStruct{}
-	err := parseTOMLFiles(s, []string{"notthere.toml", "simple.toml", "skipped.toml"}, true)
+	err := parseTOMLFiles(s, []string{"testdata/notthere.toml", "testdata/simple.toml", "testdata/skipped.toml"}, true)
 	if err != nil {
 		t.Errorf("error encountered parsing: %s", err)
 		return
