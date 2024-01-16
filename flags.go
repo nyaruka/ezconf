@@ -3,6 +3,7 @@ package ezconf
 import (
 	"flag"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 )
@@ -91,6 +92,9 @@ func buildFlags(name string, description string, fields *ezFields, errorHandling
 
 		case time.Time:
 			flags.String(flagName, formatDatetime(f.Value().(time.Time)), help)
+
+		case slog.Level:
+			flags.String(flagName, v.String(), help)
 		}
 	}
 

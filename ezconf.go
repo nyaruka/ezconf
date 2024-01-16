@@ -3,6 +3,7 @@ package ezconf
 import (
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"sort"
 	"strconv"
@@ -14,19 +15,21 @@ import (
 )
 
 // CamelToSnake converts a CamelCase strings to a snake_case using the following algorithm:
-//  1) for every transition from upper->lowercase insert an underscore before the uppercase character
-//  2) for every transition fro lowercase->uppercase insert an underscore before the uppercase
-//  3) lowercase resulting string
 //
-//  Examples:
-//      CamelCase -> camel_case
-//      AWSConfig -> aws_config
-//      IPAddress -> ip_address
-//      S3MediaPrefix -> s3_media_prefix
-//      Route53Region -> route53_region
-//      CamelCaseA -> camel_case_a
-//      CamelABCCaseDEF -> camel_abc_case_def
+//  1. for every transition from upper->lowercase insert an underscore before the uppercase character
 //
+//  2. for every transition fro lowercase->uppercase insert an underscore before the uppercase
+//
+//  3. lowercase resulting string
+//
+//     Examples:
+//     CamelCase -> camel_case
+//     AWSConfig -> aws_config
+//     IPAddress -> ip_address
+//     S3MediaPrefix -> s3_media_prefix
+//     Route53Region -> route53_region
+//     CamelCaseA -> camel_case_a
+//     CamelABCCaseDEF -> camel_abc_case_def
 func CamelToSnake(camel string) string {
 	snakes := make([]string, 0, 4)
 	snake := strings.Builder{}
@@ -76,7 +79,6 @@ func CamelToSnake(camel string) string {
 //  2. TOML files you specify (optional)
 //  3. Set environment variables
 //  4. Command line parameters
-//
 type EZLoader struct {
 	name        string
 	description string
@@ -94,7 +96,6 @@ type EZLoader struct {
 // `name` and `description` are used to build environment variables and help parameters. The list of files
 // can be nil, or can contain optional files to read TOML configuration from in priority order. The first file
 // found and parsed will end parsing of others, but there is no requirement that any file is found.
-//
 func NewLoader(config interface{}, name string, description string, files []string) *EZLoader {
 	return &EZLoader{
 		name:        name,
@@ -106,12 +107,11 @@ func NewLoader(config interface{}, name string, description string, files []stri
 }
 
 // MustLoad loads our configuration from our sources in the order of:
-//   1. TOML files
-//   2. Environment variables
-//   3. Command line parameters
+//  1. TOML files
+//  2. Environment variables
+//  3. Command line parameters
 //
 // If any error is encountered, the program will exit reporting the error and showing usage.
-//
 func (ez *EZLoader) MustLoad() {
 	err := ez.Load()
 	if err != nil {
@@ -122,12 +122,11 @@ func (ez *EZLoader) MustLoad() {
 }
 
 // Load loads our configuration from our sources in the order of:
-//   1. TOML files
-//   2. Environment variables
-//   3. Command line parameters
+//  1. TOML files
+//  2. Environment variables
+//  3. Command line parameters
 //
 // If any error is encountered it is returned for the caller to process.
-//
 func (ez *EZLoader) Load() error {
 	// first build our mapping of name snake_case -> structs.Field
 	fields, err := buildFields(ez.config)
@@ -340,12 +339,20 @@ func setValues(fields *ezFields, values map[string]ezValue) error {
 			}
 
 			f.Set(t)
+
+		case slog.Level:
+			var level slog.Level
+			err := level.UnmarshalText([]byte(value))
+			if err != nil {
+				return err
+			}
+			f.Set(level)
 		}
 	}
 	return nil
 }
 
-func buildFields(config interface{}) (*ezFields, error) {
+func buildFields(config any) (*ezFields, error) {
 	fields := make(map[string]*structs.Field)
 	s := structs.New(config)
 	for _, f := range s.Fields() {
@@ -356,7 +363,8 @@ func buildFields(config interface{}) (*ezFields, error) {
 				float32, float64,
 				bool,
 				string,
-				time.Time:
+				time.Time,
+				slog.Level:
 				name := CamelToSnake(f.Name())
 				dupe, found := fields[name]
 				if found {

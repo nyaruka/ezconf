@@ -13,7 +13,7 @@ import (
 // Iterates the list of files, parsing the first that is found and loading the
 // result into the passed in struct pointer. If no files are passed in or
 // no files are found, this is a noop.
-func parseTOMLFiles(config interface{}, files []string, debug bool) error {
+func parseTOMLFiles(config any, files []string, debug bool) error {
 	// search through our list of files, stopping when we find one
 	for i, file := range files {
 		toml, err := os.ReadFile(file)
