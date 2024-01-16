@@ -16,8 +16,6 @@ type simpleStruct struct {
 	Nested struct {
 		NestedInt int
 	}
-
-	privInt int
 }
 
 func TestParsing(t *testing.T) {

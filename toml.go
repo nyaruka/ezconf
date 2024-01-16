@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"reflect"
 
@@ -17,7 +16,7 @@ import (
 func parseTOMLFiles(config interface{}, files []string, debug bool) error {
 	// search through our list of files, stopping when we find one
 	for i, file := range files {
-		toml, err := ioutil.ReadFile(file)
+		toml, err := os.ReadFile(file)
 		if err != nil {
 			// not finding a file is ok, we just move on
 			if os.IsNotExist(err) {
@@ -49,10 +48,6 @@ func parseTOMLFiles(config interface{}, files []string, debug bool) error {
 	}
 
 	return nil
-}
-
-type ezTOMLConfig struct {
-	*toml.Config
 }
 
 // We build our own decoder that uses our own CamelToSnake and is a bit stricter with
