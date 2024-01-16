@@ -1,7 +1,7 @@
 # EZConf [![Build Status](https://github.com/nyaruka/ezconf/workflows/CI/badge.svg)](https://github.com/nyaruka/ezconf/actions?query=workflow%3ACI) [![codecov](https://codecov.io/gh/nyaruka/ezconf/branch/main/graph/badge.svg)](https://codecov.io/gh/nyaruka/ezconf) [![Go Report Card](https://goreportcard.com/badge/github.com/nyaruka/ezconf)](https://goreportcard.com/report/github.com/nyaruka/ezconf)
 
-Go library to provide simple way of reading configuration settings from four sources, in order of priority 
-(each level is higher priority than the previous ones):
+Go library to provide simple way of reading configuration settings from four sources, with each source able to override
+the previous:
  
  1. The default settings for your app
  2. A TOML file with settings
@@ -15,12 +15,13 @@ the sources above.
 The library will automatically parse command line parameters and environment variables for all top level fields
 in your struct of the following types:
 
- * int, int8, int16, int32, int64
- * uint, uint8, uint16, uint32, uint64
- * float32, float64
- * bool
- * string
- * datetimes in the following formats: `2018-04-02`, `15:30:02`, `2018-04-02T15:30:02.000` and `2018-04-03T05:30:00.123+07:00`
+ * `int`, `int8`, `int16`, `int32`, `int64`
+ * `uint`, `uint8`, `uint16`, `uint32`, `uint64`
+ * `float32`, `float64`
+ * `bool`
+ * `string`
+ * `time.Time` as strings in the following formats: `2018-04-02`, `15:30:02`, `2018-04-02T15:30:02.000` and `2018-04-03T05:30:00.123+07:00`
+ * `slog.Level` as strings e.g. `info`
 
 It converts all CamelCase fields to snake_case in a manner that is compatible with the acronyms we work with
 everyday. Some examples of how a struct name is converted to a TOML field, environment variable and command
