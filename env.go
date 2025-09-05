@@ -30,19 +30,14 @@ func buildEnvUsage(name string, fields *ezFields) string {
 		switch f.Value().(type) {
 		case int, int8, int16, int32, int64:
 			usage.WriteString(fmt.Sprintf("    % 40s - int\n", env))
-
 		case uint, uint8, uint16, uint32, uint64:
 			usage.WriteString(fmt.Sprintf("    % 40s - uint\n", env))
-
 		case float32, float64:
 			usage.WriteString(fmt.Sprintf("    % 40s - float\n", env))
-
 		case bool:
 			usage.WriteString(fmt.Sprintf("    % 40s - bool\n", env))
-
 		case string:
 			usage.WriteString(fmt.Sprintf("    % 40s - string\n", env))
-
 		case time.Time:
 			usage.WriteString(fmt.Sprintf("    % 40s - datetime\n", env))
 		}
