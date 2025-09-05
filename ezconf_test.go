@@ -38,7 +38,7 @@ type allTypes struct {
 	MyLogLevel slog.Level
 }
 
-func toFields(t *testing.T, s interface{}) *ezFields {
+func toFields(t *testing.T, s any) *ezFields {
 	fields, err := buildFields(s)
 	if err != nil {
 		t.Errorf("error building fields for %+v: %s", s, err)

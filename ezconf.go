@@ -38,7 +38,7 @@ func CamelToSnake(camel string) string {
 	// two transitions:
 	//    we are upper, next is lower
 	//    we are lower, next is upper
-	for i := 0; i < len(runes); i++ {
+	for i := range runes {
 		r := runes[i]
 		hasNext := i+1 < len(runes)
 
@@ -82,7 +82,7 @@ func CamelToSnake(camel string) string {
 type EZLoader struct {
 	name        string
 	description string
-	config      interface{}
+	config      any
 	files       []string
 
 	// overridden in tests
@@ -96,7 +96,7 @@ type EZLoader struct {
 // `name` and `description` are used to build environment variables and help parameters. The list of files
 // can be nil, or can contain optional files to read TOML configuration from in priority order. The first file
 // found and parsed will end parsing of others, but there is no requirement that any file is found.
-func NewLoader(config interface{}, name string, description string, files []string) *EZLoader {
+func NewLoader(config any, name string, description string, files []string) *EZLoader {
 	return &EZLoader{
 		name:        name,
 		description: description,
