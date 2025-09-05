@@ -18,7 +18,7 @@ func parseFlags(fs *flag.FlagSet, args []string) (map[string]ezValue, error) {
 
 	// visit all our flags, populate a value for every value that isn't the default
 	fs.Visit(func(flag *flag.Flag) {
-		snake := strings.Replace(flag.Name, "-", "_", -1)
+		snake := strings.ReplaceAll(flag.Name, "-", "_")
 		if snake != "help" && snake != "debug_conf" {
 			values[snake] = ezValue{flag.Name, flag.Value.String()}
 		}
@@ -50,7 +50,7 @@ func buildFlags(name string, description string, fields *ezFields, errorHandling
 		f := fields.fields[name]
 
 		// change underscores to dashes for flags
-		flagName := strings.Replace(name, "_", "-", -1)
+		flagName := strings.ReplaceAll(name, "_", "-")
 		help := f.Tag("help")
 		if help == "" {
 			help = fmt.Sprintf("set value for %s", name)
