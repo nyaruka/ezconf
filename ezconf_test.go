@@ -122,7 +122,7 @@ func TestSetValue(t *testing.T) {
 func TestEndToEnd(t *testing.T) {
 	at := &allTypes{}
 	conf := NewLoader(at, "foo", "description", []string{"testdata/missing.toml", "testdata/fields.toml", "testdata/simple.toml"})
-	conf.args = []string{"-my-int=48", "-my-log-level=error", "-debug-conf"}
+	conf.SetArgs("-my-int=48", "-my-log-level=error", "-debug-conf")
 	err := conf.Load()
 	assert.NoError(t, err)
 	assert.Equal(t, 48, at.MyInt)
@@ -132,14 +132,14 @@ func TestEndToEnd(t *testing.T) {
 func TestPriority(t *testing.T) {
 	at := &allTypes{MyInt: 16}
 	conf := NewLoader(at, "foo", "description", []string{"testdata/missing.toml", "testdata/fields.toml", "testdata/simple.toml"})
-	conf.args = []string{}
+	conf.SetArgs()
 	conf.Load()
 
 	assert.Equal(t, 96, at.MyInt)
 
 	// override with environment variable
 	conf = NewLoader(at, "foo", "description", []string{"testdata/missing.toml", "testdata/fields.toml", "testdata/simple.toml"})
-	conf.args = []string{}
+	conf.SetArgs()
 	os.Setenv("FOO_MY_INT", "48")
 	conf.Load()
 
@@ -147,7 +147,7 @@ func TestPriority(t *testing.T) {
 
 	// override with args
 	conf = NewLoader(at, "foo", "description", []string{"testdata/missing.toml", "testdata/fields.toml", "testdata/simple.toml"})
-	conf.args = []string{"-my-int=56"}
+	conf.SetArgs("-my-int=56")
 	os.Setenv("FOO_MY_INT", "48")
 	conf.Load()
 
@@ -156,7 +156,7 @@ func TestPriority(t *testing.T) {
 	// clear our env, args should take precedence now even though we are setting to the same as our new default
 	os.Setenv("FOO_MY_INT", "")
 	conf = NewLoader(at, "foo", "description", []string{"testdata/missing.toml", "testdata/fields.toml", "testdata/simple.toml"})
-	conf.args = []string{"-my-int=56"}
+	conf.SetArgs("-my-int=56")
 	conf.Load()
 
 	assert.Equal(t, 56, at.MyInt)

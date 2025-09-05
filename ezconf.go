@@ -22,10 +22,8 @@ type EZLoader struct {
 	name        string
 	description string
 	config      any
+	args        []string
 	files       []string
-
-	// overridden in tests
-	args []string
 
 	// we hang onto this to print usage where needed
 	flags *flag.FlagSet
@@ -43,6 +41,11 @@ func NewLoader(config any, name string, description string, files []string) *EZL
 		files:       files,
 		args:        os.Args[1:],
 	}
+}
+
+// SetArgs allows you to override the command line arguments to be parsed. This is primarily useful for tests.
+func (ez *EZLoader) SetArgs(args ...string) {
+	ez.args = args
 }
 
 // MustLoad loads our configuration from our sources in the order of:
