@@ -13,17 +13,17 @@ import (
 	"github.com/fatih/structs"
 )
 
-// EZLoader allows you to load your configuration from four sources, in order of priority (later overrides earlier):
+// Loader allows you to load your configuration from four sources, in order of priority (later overrides earlier):
 //  1. The default values of your configuration struct
 //  2. TOML files you specify (optional)
 //  3. Set environment variables
 //  4. Command line parameters
-type EZLoader struct {
+type Loader struct {
 	name        string
 	description string
 	config      any
-	args        []string
 	files       []string
+	args        []string
 
 	// we hang onto this to print usage where needed
 	flags *flag.FlagSet
@@ -33,8 +33,8 @@ type EZLoader struct {
 // `name` and `description` are used to build environment variables and help parameters. The list of files
 // can be nil, or can contain optional files to read TOML configuration from in priority order. The first file
 // found and parsed will end parsing of others, but there is no requirement that any file is found.
-func NewLoader(config any, name string, description string, files []string) *EZLoader {
-	return &EZLoader{
+func NewLoader(config any, name string, description string, files []string) *Loader {
+	return &Loader{
 		name:        name,
 		description: description,
 		config:      config,
@@ -44,8 +44,8 @@ func NewLoader(config any, name string, description string, files []string) *EZL
 }
 
 // SetArgs allows you to override the command line arguments to be parsed. This is primarily useful for tests.
-func (ez *EZLoader) SetArgs(args ...string) {
-	ez.args = args
+func (l *Loader) SetArgs(args ...string) {
+	l.args = args
 }
 
 // MustLoad loads our configuration from our sources in the order of:
@@ -54,11 +54,11 @@ func (ez *EZLoader) SetArgs(args ...string) {
 //  3. Command line parameters
 //
 // If any error is encountered, the program will exit reporting the error and showing usage.
-func (ez *EZLoader) MustLoad() {
-	err := ez.Load()
+func (l *Loader) MustLoad() {
+	err := l.Load()
 	if err != nil {
 		fmt.Printf("Error while reading configuration: %s\n\n", err.Error())
-		ez.flags.Usage()
+		l.flags.Usage()
 		os.Exit(1)
 	}
 }
@@ -69,31 +69,31 @@ func (ez *EZLoader) MustLoad() {
 //  3. Command line parameters
 //
 // If any error is encountered it is returned for the caller to process.
-func (ez *EZLoader) Load() error {
+func (l *Loader) Load() error {
 	// first build our mapping of name snake_case -> structs.Field
-	fields, err := buildFields(ez.config)
+	fields, err := buildFields(l.config)
 	if err != nil {
 		return err
 	}
 
 	// build our flags
-	ez.flags = buildFlags(ez.name, ez.description, fields, flag.ExitOnError)
+	l.flags = buildFlags(l.name, l.description, fields, flag.ExitOnError)
 
 	// parse them
-	flagValues, err := parseFlags(ez.flags, ez.args)
+	flagValues, err := parseFlags(l.flags, l.args)
 	if err != nil {
 		return err
 	}
 
 	// if they asked for usage, show it
-	if ez.flags.Lookup("help").Value.String() == "true" {
-		ez.flags.Usage()
+	if l.flags.Lookup("help").Value.String() == "true" {
+		l.flags.Usage()
 		os.Exit(1)
 	}
 
 	// if they asked for config debug, show it
 	debug := false
-	if ez.flags.Lookup("debug-conf").Value.String() == "true" {
+	if l.flags.Lookup("debug-conf").Value.String() == "true" {
 		debug = true
 	}
 
@@ -102,7 +102,7 @@ func (ez *EZLoader) Load() error {
 	}
 
 	// read any found file into our config
-	err = parseTOMLFiles(ez.config, ez.files, debug)
+	err = parseTOMLFiles(l.config, l.files, debug)
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func (ez *EZLoader) Load() error {
 	}
 
 	// parse our environment
-	envValues := parseEnv(ez.name, fields)
+	envValues := parseEnv(l.name, fields)
 	err = setValues(fields, envValues)
 	if err != nil {
 		return err
