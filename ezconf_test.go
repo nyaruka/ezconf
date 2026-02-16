@@ -129,6 +129,48 @@ func TestEndToEnd(t *testing.T) {
 	assert.Equal(t, slog.LevelError, at.MyLogLevel)
 }
 
+func TestConfTag(t *testing.T) {
+	type config struct {
+		OpenSearch string `name:"opensearch" help:"the OpenSearch URL"`
+		NumWorkers int    `help:"the number of workers"`
+	}
+
+	// test that buildFields uses conf tag for name
+	c := &config{}
+	fields := toFields(t, c)
+	assert.Contains(t, fields.fields, "opensearch")
+	assert.Contains(t, fields.fields, "num_workers")
+	assert.NotContains(t, fields.fields, "open_search")
+
+	// test flag name uses conf tag (opensearch not open-search)
+	c = &config{OpenSearch: "http://default", NumWorkers: 4}
+	conf := NewLoader(c, "foo", "description", nil)
+	conf.SetArgs("-opensearch=http://localhost:9200", "-num-workers=8")
+	err := conf.Load()
+	assert.NoError(t, err)
+	assert.Equal(t, "http://localhost:9200", c.OpenSearch)
+	assert.Equal(t, 8, c.NumWorkers)
+
+	// test env var uses conf tag (FOO_OPENSEARCH not FOO_OPEN_SEARCH)
+	c = &config{OpenSearch: "http://default", NumWorkers: 4}
+	conf = NewLoader(c, "foo", "description", nil)
+	conf.SetArgs()
+	os.Setenv("FOO_OPENSEARCH", "http://from-env")
+	defer os.Setenv("FOO_OPENSEARCH", "")
+	err = conf.Load()
+	assert.NoError(t, err)
+	assert.Equal(t, "http://from-env", c.OpenSearch)
+
+	// test TOML uses conf tag
+	c = &config{OpenSearch: "http://default", NumWorkers: 4}
+	conf = NewLoader(c, "foo", "description", []string{"testdata/conftag.toml"})
+	conf.SetArgs()
+	os.Setenv("FOO_OPENSEARCH", "")
+	err = conf.Load()
+	assert.NoError(t, err)
+	assert.Equal(t, "http://from-toml", c.OpenSearch)
+}
+
 func TestPriority(t *testing.T) {
 	at := &allTypes{MyInt: 16}
 	conf := NewLoader(at, "foo", "description", []string{"testdata/missing.toml", "testdata/fields.toml", "testdata/simple.toml"})

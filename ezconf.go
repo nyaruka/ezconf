@@ -280,7 +280,10 @@ func buildFields(config any) (*ezFields, error) {
 				string,
 				time.Time,
 				slog.Level:
-				name := CamelToSnake(f.Name())
+				name := f.Tag("name")
+				if name == "" {
+					name = CamelToSnake(f.Name())
+				}
 				dupe, found := fields[name]
 				if found {
 					return nil, fmt.Errorf("%s name collides with %s", dupe.Name(), f.Name())

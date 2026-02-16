@@ -36,6 +36,21 @@ Environment variables are prefixed with your app name, in this case `courier`:
 | DB            | db               | COURIER_DB                   | db                     |
 | NumWorkers    | num_workers      | COURIER_NUM_WORKERS          | num-workers            |
 
+You can use the `name` struct tag to override the default snake_case name for a field. This is useful when
+the automatic CamelCase to snake_case conversion doesn't produce the desired result:
+
+```golang
+type Config struct {
+	OpenSearch string `name:"opensearch" help:"the OpenSearch URL"`
+}
+```
+
+| Struct Field  | TOML Field       | Environment Variable         | Command line Parameter |
+|---------------|------------------|------------------------------|------------------------|
+| OpenSearch    | opensearch       | COURIER_OPENSEARCH           | opensearch             |
+
+Without the `name` tag, `OpenSearch` would be converted to `open_search`.
+
 EZConf will also automatically create the appropriate flags and help based on your struct definition, for example:
 
 ```
