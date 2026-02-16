@@ -60,17 +60,23 @@ func newDecoder(r io.Reader) *toml.Decoder {
 	return tomlConfig.NewDecoder(r)
 }
 
+// resolveNameTag checks if a struct field has a `name` tag and returns it if present.
+// Returns an empty string if the field doesn't exist or doesn't have a `name` tag.
+func resolveNameTag(typ reflect.Type, field string) string {
+	if typ.Kind() == reflect.Struct {
+		if sf, ok := typ.FieldByName(field); ok {
+			return sf.Tag.Get("name")
+		}
+	}
+	return ""
+}
+
 // Satisfies the NormFieldName interface and is used to match TOML keys to struct fields.
 // The function runs for both input keys and struct field names and should return a string
 // that makes the two match.
 func camelNormalizer(typ reflect.Type, keyOrField string) string {
-	// if the struct field has a `name` tag, use that as the normalized name
-	if typ.Kind() == reflect.Struct {
-		if sf, ok := typ.FieldByName(keyOrField); ok {
-			if name := sf.Tag.Get("name"); name != "" {
-				return name
-			}
-		}
+	if name := resolveNameTag(typ, keyOrField); name != "" {
+		return name
 	}
 	return CamelToSnake(keyOrField)
 }
@@ -79,12 +85,8 @@ func camelNormalizer(typ reflect.Type, keyOrField string) string {
 //
 // Note that FieldToKey is not used for fields which define a TOML key through the struct tag.
 func camelKey(typ reflect.Type, field string) string {
-	if typ.Kind() == reflect.Struct {
-		if sf, ok := typ.FieldByName(field); ok {
-			if name := sf.Tag.Get("name"); name != "" {
-				return name
-			}
-		}
+	if name := resolveNameTag(typ, field); name != "" {
+		return name
 	}
 	return CamelToSnake(field)
 }
