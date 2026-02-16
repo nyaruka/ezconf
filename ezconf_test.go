@@ -129,6 +129,94 @@ func TestEndToEnd(t *testing.T) {
 	assert.Equal(t, slog.LevelError, at.MyLogLevel)
 }
 
+func TestNameTagValidation(t *testing.T) {
+	tests := []struct {
+		name string
+		err  string
+	}{
+		{"opensearch", ""},
+		{"num_workers", ""},
+		{"s3_bucket", ""},
+		{"a", ""},
+		{"OpenSearch", `invalid name tag "OpenSearch" for field F, must be snake_case`},
+		{"open-search", `invalid name tag "open-search" for field F, must be snake_case`},
+		{"_opensearch", `invalid name tag "_opensearch" for field F, must be snake_case`},
+		{"opensearch_", `invalid name tag "opensearch_" for field F, must be snake_case`},
+		{"open__search", `invalid name tag "open__search" for field F, must be snake_case`},
+		{"123", `invalid name tag "123" for field F, must be snake_case`},
+		{"open search", `invalid name tag "open search" for field F, must be snake_case`},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// we can't dynamically set struct tags, so test the regex directly
+			valid := validNameTag.MatchString(tc.name)
+			if tc.err == "" {
+				assert.True(t, valid, "expected %q to be valid", tc.name)
+			} else {
+				assert.False(t, valid, "expected %q to be invalid", tc.name)
+			}
+		})
+	}
+
+	// test that buildFields returns error for invalid name tag
+	type badConfig struct {
+		F string `name:"Open-Search"`
+	}
+	_, err := buildFields(&badConfig{})
+	assert.EqualError(t, err, `invalid name tag "Open-Search" for field F, must be snake_case`)
+
+	// test that buildFields accepts valid name tag
+	type goodConfig struct {
+		F string `name:"opensearch"`
+	}
+	fields, err := buildFields(&goodConfig{})
+	assert.NoError(t, err)
+	assert.Contains(t, fields.fields, "opensearch")
+}
+
+func TestNameTag(t *testing.T) {
+	type config struct {
+		OpenSearch string `name:"opensearch" help:"the OpenSearch URL"`
+		NumWorkers int    `help:"the number of workers"`
+	}
+
+	// test that buildFields uses name tag for name
+	c := &config{}
+	fields := toFields(t, c)
+	assert.Contains(t, fields.fields, "opensearch")
+	assert.Contains(t, fields.fields, "num_workers")
+	assert.NotContains(t, fields.fields, "open_search")
+
+	// test flag name uses name tag (opensearch not open-search)
+	c = &config{OpenSearch: "http://default", NumWorkers: 4}
+	conf := NewLoader(c, "foo", "description", nil)
+	conf.SetArgs("-opensearch=http://localhost:9200", "-num-workers=8")
+	err := conf.Load()
+	assert.NoError(t, err)
+	assert.Equal(t, "http://localhost:9200", c.OpenSearch)
+	assert.Equal(t, 8, c.NumWorkers)
+
+	// test env var uses name tag (FOO_OPENSEARCH not FOO_OPEN_SEARCH)
+	c = &config{OpenSearch: "http://default", NumWorkers: 4}
+	conf = NewLoader(c, "foo", "description", nil)
+	conf.SetArgs()
+	os.Setenv("FOO_OPENSEARCH", "http://from-env")
+	defer os.Setenv("FOO_OPENSEARCH", "")
+	err = conf.Load()
+	assert.NoError(t, err)
+	assert.Equal(t, "http://from-env", c.OpenSearch)
+
+	// test TOML uses name tag
+	c = &config{OpenSearch: "http://default", NumWorkers: 4}
+	conf = NewLoader(c, "foo", "description", []string{"testdata/conftag.toml"})
+	conf.SetArgs()
+	os.Setenv("FOO_OPENSEARCH", "")
+	err = conf.Load()
+	assert.NoError(t, err)
+	assert.Equal(t, "http://from-toml", c.OpenSearch)
+}
+
 func TestPriority(t *testing.T) {
 	at := &allTypes{MyInt: 16}
 	conf := NewLoader(at, "foo", "description", []string{"testdata/missing.toml", "testdata/fields.toml", "testdata/simple.toml"})

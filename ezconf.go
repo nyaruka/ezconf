@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/fatih/structs"
 )
+
+var validNameTag = regexp.MustCompile(`^[a-z][a-z0-9]*(_[a-z0-9]+)*$`)
 
 // Loader allows you to load your configuration from four sources, in order of priority (later overrides earlier):
 //  1. The default values of your configuration struct
@@ -280,7 +283,12 @@ func buildFields(config any) (*ezFields, error) {
 				string,
 				time.Time,
 				slog.Level:
-				name := CamelToSnake(f.Name())
+				name := f.Tag("name")
+				if name == "" {
+					name = CamelToSnake(f.Name())
+				} else if !validNameTag.MatchString(name) {
+					return nil, fmt.Errorf("invalid name tag %q for field %s, must be snake_case", name, f.Name())
+				}
 				dupe, found := fields[name]
 				if found {
 					return nil, fmt.Errorf("%s name collides with %s", dupe.Name(), f.Name())
