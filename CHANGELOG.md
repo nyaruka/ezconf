@@ -1,3 +1,7 @@
+v0.5.0 (2026-02-16)
+-------------------------
+ * Add support for name struct field tag to control snakification
+
 v0.4.1 (2025-09-08)
 -------------------------
  * Don't fail build for codecov failures because it always fails argh
