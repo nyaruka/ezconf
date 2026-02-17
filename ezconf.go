@@ -1,6 +1,7 @@
 package ezconf
 
 import (
+	"encoding/csv"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -235,14 +236,20 @@ func setValues(fields *ezFields, values map[string]ezValue) error {
 			f.Set(value)
 
 		case []string:
-			parts := strings.Split(value, ",")
+			parts, err := csv.NewReader(strings.NewReader(value)).Read()
+			if err != nil {
+				return err
+			}
 			for i, p := range parts {
 				parts[i] = strings.TrimSpace(p)
 			}
 			f.Set(parts)
 
 		case []int:
-			parts := strings.Split(value, ",")
+			parts, err := csv.NewReader(strings.NewReader(value)).Read()
+			if err != nil {
+				return err
+			}
 			ints := make([]int, len(parts))
 			for i, p := range parts {
 				n, err := strconv.ParseInt(strings.TrimSpace(p), 10, strconv.IntSize)

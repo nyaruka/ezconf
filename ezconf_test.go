@@ -93,7 +93,7 @@ func TestSetValue(t *testing.T) {
 
 		{"my_strings", "foo,bar,baz", false, "[foo bar baz]"},
 		{"my_strings", "foo, bar , baz", false, "[foo bar baz]"},
-		{"my_strings", "", false, "[]"},
+		{"my_strings", "", true, ""},
 
 		{"my_ints", "10,20,30", false, "[10 20 30]"},
 		{"my_ints", "10, 20 , 30", false, "[10 20 30]"},
