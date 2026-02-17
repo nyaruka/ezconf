@@ -3,10 +3,9 @@ my_int = 32
 my_bool = true
 my_datetime = 2018-04-03T05:30:00Z
 my_log_level = "info"
-
-# arrays cannot
 my_ints = [10, 20, 30]
+my_strings = ["foo", "bar"]
 
-# neither can nested fields
+# nested fields can only be set from TOML
 [nested]
 nested_int = 64

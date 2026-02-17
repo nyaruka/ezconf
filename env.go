@@ -29,17 +29,21 @@ func buildEnvUsage(name string, fields *ezFields) string {
 		env := strings.ToUpper(fmt.Sprintf("%s_%s", name, snake))
 		switch f.Value().(type) {
 		case int, int8, int16, int32, int64:
-			usage.WriteString(fmt.Sprintf("    % 40s - int\n", env))
+			fmt.Fprintf(&usage, "    % 40s - int\n", env)
 		case uint, uint8, uint16, uint32, uint64:
-			usage.WriteString(fmt.Sprintf("    % 40s - uint\n", env))
+			fmt.Fprintf(&usage, "    % 40s - uint\n", env)
 		case float32, float64:
-			usage.WriteString(fmt.Sprintf("    % 40s - float\n", env))
+			fmt.Fprintf(&usage, "    % 40s - float\n", env)
 		case bool:
-			usage.WriteString(fmt.Sprintf("    % 40s - bool\n", env))
+			fmt.Fprintf(&usage, "    % 40s - bool\n", env)
 		case string:
-			usage.WriteString(fmt.Sprintf("    % 40s - string\n", env))
+			fmt.Fprintf(&usage, "    % 40s - string\n", env)
+		case []int:
+			fmt.Fprintf(&usage, "    % 40s - comma separated integer list\n", env)
+		case []string:
+			fmt.Fprintf(&usage, "    % 40s - comma separated string list\n", env)
 		case time.Time:
-			usage.WriteString(fmt.Sprintf("    % 40s - datetime\n", env))
+			fmt.Fprintf(&usage, "    % 40s - datetime\n", env)
 		}
 	}
 	return usage.String()

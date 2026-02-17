@@ -234,6 +234,25 @@ func setValues(fields *ezFields, values map[string]ezValue) error {
 		case string:
 			f.Set(value)
 
+		case []string:
+			parts := strings.Split(value, ",")
+			for i, p := range parts {
+				parts[i] = strings.TrimSpace(p)
+			}
+			f.Set(parts)
+
+		case []int:
+			parts := strings.Split(value, ",")
+			ints := make([]int, len(parts))
+			for i, p := range parts {
+				n, err := strconv.ParseInt(strings.TrimSpace(p), 10, strconv.IntSize)
+				if err != nil {
+					return err
+				}
+				ints[i] = int(n)
+			}
+			f.Set(ints)
+
 		case time.Time:
 			var t time.Time
 			var err error
@@ -281,6 +300,8 @@ func buildFields(config any) (*ezFields, error) {
 				float32, float64,
 				bool,
 				string,
+				[]string,
+				[]int,
 				time.Time,
 				slog.Level:
 				name := f.Tag("name")
