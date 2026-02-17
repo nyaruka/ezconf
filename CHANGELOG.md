@@ -1,3 +1,7 @@
+v0.6.0 (2026-02-17)
+-------------------------
+ * Add support for arrays of strings and ints encoded as CSV
+
 v0.5.0 (2026-02-16)
 -------------------------
  * Add support for name struct field tag to control snakification
