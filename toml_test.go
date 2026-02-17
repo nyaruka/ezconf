@@ -14,7 +14,8 @@ type simpleStruct struct {
 	MyDatetime time.Time
 	MyLogLevel slog.Level
 
-	MyInts []int
+	MyInts    []int
+	MyStrings []string
 
 	Nested struct {
 		NestedInt int
@@ -29,6 +30,7 @@ func TestParsing(t *testing.T) {
 	assert.Equal(t, 32, s.MyInt)
 	assert.True(t, s.MyBool)
 	assert.Equal(t, []int{10, 20, 30}, s.MyInts)
+	assert.Equal(t, []string{"foo", "bar"}, s.MyStrings)
 	assert.Equal(t, 64, s.Nested.NestedInt)
 	assert.Equal(t, time.Date(2018, 4, 3, 5, 30, 0, 0, time.UTC), s.MyDatetime)
 }

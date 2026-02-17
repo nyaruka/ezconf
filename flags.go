@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -89,6 +90,16 @@ func buildFlags(name string, description string, fields *ezFields, errorHandling
 
 		case string:
 			flags.String(flagName, f.Value().(string), help)
+
+		case []string:
+			flags.String(flagName, strings.Join(v, ","), help)
+
+		case []int:
+			parts := make([]string, len(v))
+			for i, n := range v {
+				parts[i] = strconv.Itoa(n)
+			}
+			flags.String(flagName, strings.Join(parts, ","), help)
 
 		case time.Time:
 			flags.String(flagName, formatDatetime(f.Value().(time.Time)), help)

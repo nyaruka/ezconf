@@ -34,6 +34,8 @@ type allTypes struct {
 	MyFloat64  float64
 	MyBool     bool
 	MyString   string
+	MyStrings  []string
+	MyInts     []int
 	MyDatetime time.Time
 	MyLogLevel slog.Level
 }
@@ -88,6 +90,14 @@ func TestSetValue(t *testing.T) {
 		{"my_bool", "wat", true, ""},
 
 		{"my_string", "foozap", false, "foozap"},
+
+		{"my_strings", "foo,bar,baz", false, "[foo bar baz]"},
+		{"my_strings", "foo, bar , baz", false, "[foo bar baz]"},
+		{"my_strings", "", false, "[]"},
+
+		{"my_ints", "10,20,30", false, "[10 20 30]"},
+		{"my_ints", "10, 20 , 30", false, "[10 20 30]"},
+		{"my_ints", "wat", true, ""},
 
 		{"my_datetime", "15:45:05", false, "0000-01-01 15:45:05 +0000 UTC"},
 		{"my_datetime", "2018-04-03", false, "2018-04-03 00:00:00 +0000 UTC"},
