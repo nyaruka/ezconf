@@ -1,4 +1,4 @@
-# EZConf [![Build Status](https://github.com/nyaruka/ezconf/workflows/CI/badge.svg)](https://github.com/nyaruka/ezconf/actions?query=workflow%3ACI) [![codecov](https://codecov.io/gh/nyaruka/ezconf/branch/main/graph/badge.svg)](https://codecov.io/gh/nyaruka/ezconf) [![Go Report Card](https://goreportcard.com/badge/github.com/nyaruka/ezconf)](https://goreportcard.com/report/github.com/nyaruka/ezconf)
+# EZConf [![Build Status](https://github.com/nyaruka/ezconf/workflows/CI/badge.svg)](https://github.com/nyaruka/ezconf/actions?query=workflow%3ACI) [![codecov](https://codecov.io/gh/nyaruka/ezconf/branch/main/graph/badge.svg)](https://codecov.io/gh/nyaruka/ezconf)
 
 Go library to provide simple way of reading configuration settings from four sources, with each source able to override
 the previous:
