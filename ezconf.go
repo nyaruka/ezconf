@@ -24,8 +24,9 @@ var validNameTag = regexp.MustCompile(`^[a-z][a-z0-9]*(_[a-z0-9]+)*$`)
 // same sentinel as flag.ErrHelp, so errors.Is works against either.
 var ErrHelp = flag.ErrHelp
 
-// names claimed by the flags we add ourselves, which fields can't use
-var reservedNames = map[string]bool{"help": true}
+// names fields can't use: "help" is the flag we add ourselves, and "h" is the alias the flag
+// package treats as a usage request as long as nothing else claims it
+var reservedNames = map[string]bool{"help": true, "h": true}
 
 // Loader allows you to load your configuration from four sources, in order of priority (later overrides earlier):
 //  1. The default values of your configuration struct
@@ -112,9 +113,10 @@ func (l *Loader) Load() error {
 	l.flags = buildFlags(l.name, l.description, fields, flag.ContinueOnError)
 	l.flags.SetOutput(io.Discard)
 
-	// parse them, then restore output so that callers showing usage get it on stderr
+	// parse them, then restore output so that callers showing usage get it on stderr. nil rather
+	// than os.Stderr, so that flag keeps resolving it at write time as it does by default
 	flagValues, err := parseFlags(l.flags, l.args)
-	l.flags.SetOutput(os.Stderr)
+	l.flags.SetOutput(nil)
 	if err != nil {
 		return err
 	}

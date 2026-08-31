@@ -292,6 +292,13 @@ func TestReservedNames(t *testing.T) {
 	_, err := buildFields(&helpConfig{})
 	assert.EqualError(t, err, `Help uses reserved name "help"`)
 
+	// -h is documented as a usage alias, so a field can't claim it either
+	type hConfig struct {
+		H bool
+	}
+	_, err = buildFields(&hConfig{})
+	assert.EqualError(t, err, `H uses reserved name "h"`)
+
 	type taggedConfig struct {
 		Something bool `name:"help"`
 	}
@@ -354,4 +361,22 @@ func TestLoadIsSilent(t *testing.T) {
 	w.Close()
 	written, _ := io.ReadAll(r)
 	assert.Empty(t, string(written), "Load wrote to stdout/stderr")
+}
+
+func TestUsageFollowsStderr(t *testing.T) {
+	conf := NewLoader(&allTypes{}, "foo", "description", nil)
+	conf.SetArgs()
+	assert.NoError(t, conf.Load())
+
+	// stderr redirected after Load returned must still receive usage, so Load can't have
+	// captured the old one when it restored output
+	old := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+	conf.Usage()
+	w.Close()
+	os.Stderr = old
+
+	out, _ := io.ReadAll(r)
+	assert.Contains(t, string(out), "Usage of foo:")
 }
