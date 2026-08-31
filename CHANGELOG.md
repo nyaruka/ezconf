@@ -1,3 +1,12 @@
+v0.7.0 (2026-08-31)
+-------------------------
+ * Fix silently dropped config values when the destination isn't a settable pointer to a struct
+ * Return errors from Load instead of exiting the process, with -help and -h returning flag.ErrHelp and Usage exported
+ * Reject reserved field names with an error instead of panicking inside the flag package
+ * Parse float64 fields at full precision instead of truncating to float32
+ * Remove the undocumented -debug-conf flag which printed resolved config values including credentials
+ * Require Go 1.25
+
 v0.6.1 (2026-02-17)
 -------------------------
  * Use real CSV parsing
