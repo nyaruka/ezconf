@@ -2,7 +2,6 @@ package ezconf
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"reflect"
@@ -13,34 +12,22 @@ import (
 // Iterates the list of files, parsing the first that is found and loading the
 // result into the passed in struct pointer. If no files are passed in or
 // no files are found, this is a noop.
-func parseTOMLFiles(config any, files []string, debug bool) error {
+func parseTOMLFiles(config any, files []string) error {
 	// search through our list of files, stopping when we find one
-	for i, file := range files {
+	for _, file := range files {
 		toml, err := os.ReadFile(file)
 		if err != nil {
 			// not finding a file is ok, we just move on
 			if os.IsNotExist(err) {
-				if debug {
-					fmt.Printf("CONF: Skipping missing TOML file: %s\n", file)
-				}
 				continue
 			}
 			return err
 		}
-		if debug {
-			fmt.Printf("CONF: Parsing TOML file: %s\n", file)
-		}
 		decoder := newDecoder(bytes.NewReader(toml))
-		err = decoder.Decode(config)
 
 		// if we can't parse this file as TOML, that's a nogo
-		if err != nil {
+		if err := decoder.Decode(config); err != nil {
 			return err
-		}
-		if debug {
-			for i = i + 1; i < len(files); i++ {
-				fmt.Printf("CONF: Previous file found, skipping TOML file: %s\n", files[i])
-			}
 		}
 
 		// we break at the first file we find

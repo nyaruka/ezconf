@@ -16,7 +16,7 @@ func TestBuildFlags(t *testing.T) {
 		MyString:   "foobar",
 		MyDatetime: time.Date(2018, 3, 5, 12, 30, 0, 0, time.UTC),
 	}
-	fs := buildFlags("foo", "description", toFields(t, as), flag.ContinueOnError)
+	fs := buildFlags("foo", "description", toFields(t, &as), flag.ContinueOnError)
 
 	flags := []struct {
 		name  string

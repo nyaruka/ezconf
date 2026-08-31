@@ -62,8 +62,6 @@ Usage of courier:
     	the aws region that S3 buckets are in (default "us-west-2")
   -db string
     	the url describing how to connect to the database (default "postgres://user@secret:rds-internal.foo.bar/courier")
-  -debug-conf
-    	print where config values are coming from
   -ec2-instance-id string
     	the id of the ec2 instance we are running on (default "i-12355111134a")
   -help
