@@ -1,6 +1,6 @@
 module github.com/nyaruka/ezconf
 
-go 1.24
+go 1.25
 
 require (
 	github.com/fatih/structs v1.1.0
