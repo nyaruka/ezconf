@@ -1,9 +1,12 @@
 package ezconf
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -83,8 +86,11 @@ func TestSetValue(t *testing.T) {
 
 		{"my_float32", "12", false, "12"},
 		{"my_float32", "wat", true, ""},
+		{"my_float32", "1e300", true, ""},
 		{"my_float64", "12", false, "12"},
 		{"my_float64", "wat", true, ""},
+		{"my_float64", "0.1234567890123456", false, "0.1234567890123456"},
+		{"my_float64", "1e300", false, "1e+300"},
 
 		{"my_bool", "true", false, "true"},
 		{"my_bool", "wat", true, ""},
@@ -132,7 +138,7 @@ func TestSetValue(t *testing.T) {
 func TestEndToEnd(t *testing.T) {
 	at := &allTypes{}
 	conf := NewLoader(at, "foo", "description", []string{"testdata/missing.toml", "testdata/fields.toml", "testdata/simple.toml"})
-	conf.SetArgs("-my-int=48", "-my-log-level=error", "-debug-conf")
+	conf.SetArgs("-my-int=48", "-my-log-level=error")
 	err := conf.Load()
 	assert.NoError(t, err)
 	assert.Equal(t, 48, at.MyInt)
@@ -258,4 +264,119 @@ func TestPriority(t *testing.T) {
 	conf.Load()
 
 	assert.Equal(t, 56, at.MyInt)
+}
+
+func TestConfigMustBePointer(t *testing.T) {
+	// a struct passed by value isn't settable, so we reject it rather than silently discarding values
+	_, err := buildFields(allTypes{})
+	assert.EqualError(t, err, "config must be a non-nil pointer to a struct, got ezconf.allTypes")
+
+	_, err = buildFields((*allTypes)(nil))
+	assert.EqualError(t, err, "config must be a non-nil pointer to a struct, got *ezconf.allTypes")
+
+	i := 32
+	_, err = buildFields(&i)
+	assert.EqualError(t, err, "config must be a non-nil pointer to a struct, got *int")
+
+	// and the loader surfaces it as an error rather than reporting a successful load
+	conf := NewLoader(allTypes{}, "foo", "description", nil)
+	conf.SetArgs("-my-int=48")
+	assert.Error(t, conf.Load())
+}
+
+func TestReservedNames(t *testing.T) {
+	// fields can't claim the names of the flags we add ourselves
+	type helpConfig struct {
+		Help bool
+	}
+	_, err := buildFields(&helpConfig{})
+	assert.EqualError(t, err, `Help uses reserved name "help"`)
+
+	// -h is documented as a usage alias, so a field can't claim it either
+	type hConfig struct {
+		H bool
+	}
+	_, err = buildFields(&hConfig{})
+	assert.EqualError(t, err, `H uses reserved name "h"`)
+
+	type taggedConfig struct {
+		Something bool `name:"help"`
+	}
+	_, err = buildFields(&taggedConfig{})
+	assert.EqualError(t, err, `Something uses reserved name "help"`)
+
+	// previously this panicked inside the flag package rather than returning an error
+	conf := NewLoader(&helpConfig{}, "foo", "description", nil)
+	conf.SetArgs()
+	assert.EqualError(t, conf.Load(), `Help uses reserved name "help"`)
+}
+
+func TestLoadDoesNotExit(t *testing.T) {
+	// an unparseable flag comes back as an error rather than exiting the program
+	at := &allTypes{}
+	conf := NewLoader(at, "foo", "description", nil)
+	conf.SetArgs("-not-a-real-flag=1")
+	assert.EqualError(t, conf.Load(), "flag provided but not defined: -not-a-real-flag")
+
+	// as does a value of the wrong type
+	conf = NewLoader(at, "foo", "description", nil)
+	conf.SetArgs("-my-int=wat")
+	assert.Error(t, conf.Load())
+}
+
+func TestLoadHelp(t *testing.T) {
+	for _, arg := range []string{"-help", "-h"} {
+		at := &allTypes{}
+		conf := NewLoader(at, "foo", "description", nil)
+		conf.SetArgs(arg)
+
+		err := conf.Load()
+		assert.True(t, errors.Is(err, ErrHelp), "expected ErrHelp for %s, got %v", arg, err)
+
+		// usage is the caller's to show, and is available once Load has run
+		buf := &strings.Builder{}
+		conf.flags.SetOutput(buf)
+		conf.Usage()
+		assert.Contains(t, buf.String(), "Usage of foo:")
+		assert.Contains(t, buf.String(), "FOO_MY_INT - int")
+	}
+
+	// Usage before Load is a noop rather than a panic
+	assert.NotPanics(t, func() { NewLoader(&allTypes{}, "foo", "description", nil).Usage() })
+}
+
+func TestLoadIsSilent(t *testing.T) {
+	// Load must not write to stdout or stderr, even on error
+	oldOut, oldErr := os.Stdout, os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stdout, os.Stderr = w, w
+	defer func() { os.Stdout, os.Stderr = oldOut, oldErr }()
+
+	for _, args := range [][]string{{"-not-a-real-flag=1"}, {"-help"}, {"-my-int=wat"}} {
+		conf := NewLoader(&allTypes{}, "foo", "description", nil)
+		conf.SetArgs(args...)
+		conf.Load()
+	}
+
+	w.Close()
+	written, _ := io.ReadAll(r)
+	assert.Empty(t, string(written), "Load wrote to stdout/stderr")
+}
+
+func TestUsageFollowsStderr(t *testing.T) {
+	conf := NewLoader(&allTypes{}, "foo", "description", nil)
+	conf.SetArgs()
+	assert.NoError(t, conf.Load())
+
+	// stderr redirected after Load returned must still receive usage, so Load can't have
+	// captured the old one when it restored output
+	old := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+	conf.Usage()
+	w.Close()
+	os.Stderr = old
+
+	out, _ := io.ReadAll(r)
+	assert.Contains(t, string(out), "Usage of foo:")
 }

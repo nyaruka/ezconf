@@ -23,7 +23,7 @@ func TestParseEnv(t *testing.T) {
 		fields   *ezFields
 		expected map[string]ezValue
 	}{
-		{map[string]string{"FOO_MY_INT": "32", "FOO_IGNORE": "none"}, toFields(t, intStruct), map[string]ezValue{"my_int": {"FOO_MY_INT", "32"}}},
+		{map[string]string{"FOO_MY_INT": "32", "FOO_IGNORE": "none"}, toFields(t, &intStruct), map[string]ezValue{"my_int": {"FOO_MY_INT", "32"}}},
 	}
 
 	for _, tc := range tests {
@@ -50,7 +50,7 @@ func TestBuildUsage(t *testing.T) {
 		}, s)
 	}
 
-	fields := toFields(t, allKinds{})
+	fields := toFields(t, &allKinds{})
 	expected := `Environment variables:
 				 FOO_MY_BOOL - bool
              FOO_MY_DATETIME - datetime

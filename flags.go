@@ -20,7 +20,7 @@ func parseFlags(fs *flag.FlagSet, args []string) (map[string]ezValue, error) {
 	// visit all our flags, populate a value for every value that isn't the default
 	fs.Visit(func(flag *flag.Flag) {
 		snake := strings.ReplaceAll(flag.Name, "-", "_")
-		if snake != "help" && snake != "debug_conf" {
+		if snake != "help" {
 			values[snake] = ezValue{flag.Name, flag.Value.String()}
 		}
 	})
@@ -42,9 +42,8 @@ func buildFlags(name string, description string, fields *ezFields, errorHandling
 		fmt.Fprint(flags.Output(), buildEnvUsage(name, fields))
 	}
 
-	// add our default help and debug-conf flags
+	// add our default help flag
 	flags.Bool("help", false, "print usage information")
-	flags.Bool("debug-conf", false, "print where config values are coming from")
 
 	// build a flag for each supported field
 	for _, name := range fields.keys {

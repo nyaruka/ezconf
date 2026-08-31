@@ -24,7 +24,7 @@ type simpleStruct struct {
 
 func TestParsing(t *testing.T) {
 	s := &simpleStruct{}
-	err := parseTOMLFiles(s, []string{"testdata/notthere.toml", "testdata/simple.toml", "testdata/skipped.toml"}, true)
+	err := parseTOMLFiles(s, []string{"testdata/notthere.toml", "testdata/simple.toml", "testdata/skipped.toml"})
 
 	assert.NoError(t, err)
 	assert.Equal(t, 32, s.MyInt)
