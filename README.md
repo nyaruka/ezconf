@@ -1,4 +1,6 @@
-# EZConf [![Build Status](https://github.com/nyaruka/ezconf/workflows/CI/badge.svg)](https://github.com/nyaruka/ezconf/actions?query=workflow%3ACI)
+![EZConf](.github/banner.svg)
+
+[![Build Status](https://github.com/nyaruka/ezconf/workflows/CI/badge.svg)](https://github.com/nyaruka/ezconf/actions?query=workflow%3ACI)
 
 Go library to provide simple way of reading configuration settings from four sources, with each source able to override
 the previous:
