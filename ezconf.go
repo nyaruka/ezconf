@@ -100,13 +100,11 @@ func (l *Loader) Usage() {
 //
 // If any error is encountered it is returned for the caller to process. Load never writes to
 // stdout or stderr and never exits the program. If usage was requested with -help or -h, ErrHelp
-// is returned and it is up to the caller to show usage via Usage.
+// is returned and it is up to the caller to show usage via Usage. A config struct which can't be
+// loaded, e.g. isn't a pointer or has colliding field names, is a development error and panics.
 func (l *Loader) Load() error {
 	// first build our mapping of name snake_case -> structs.Field
-	fields, err := buildFields(l.config)
-	if err != nil {
-		return err
-	}
+	fields := buildFields(l.config)
 
 	// build our flags, silencing the flag package so that parse errors come back to us as errors
 	// rather than being printed and exiting the program
@@ -319,20 +317,19 @@ func parseValue(current any, value string) (any, error) {
 	}
 }
 
-func buildFields(config any) (*ezFields, error) {
+// buildFields builds our mapping of snake_case names to fields. A config struct which can't be loaded is a
+// development error rather than a configuration one, so it panics rather than returning an error.
+func buildFields(config any) *ezFields {
 	// config must be a non-nil pointer to a struct, otherwise its fields aren't settable and
 	// every value we read would be silently discarded
 	v := reflect.ValueOf(config)
 	if v.Kind() != reflect.Pointer || v.IsNil() || v.Elem().Kind() != reflect.Struct {
-		return nil, fmt.Errorf("config must be a non-nil pointer to a struct, got %T", config)
+		panic(fmt.Sprintf("config must be a non-nil pointer to a struct, got %T", config))
 	}
 
 	// the fields of embedded structs are promoted, so we load them as if they were declared on the config
 	// struct itself, and they may only be set via their own names
-	embedded, err := flattenStructs(v.Elem(), "")
-	if err != nil {
-		return nil, err
-	}
+	embedded := flattenStructs(v.Elem(), "")
 
 	fields := make(map[string]*structs.Field)
 	owners := make(map[string]string) // name -> qualified field name, for collision messages
@@ -358,14 +355,14 @@ func buildFields(config any) (*ezFields, error) {
 				if name == "" {
 					name = CamelToSnake(f.Name())
 				} else if !validNameTag.MatchString(name) {
-					return nil, fmt.Errorf("invalid name tag %q for field %s, must be snake_case", name, qualified)
+					panic(fmt.Sprintf("invalid name tag %q for field %s, must be snake_case", name, qualified))
 				}
 				if reservedNames[name] {
-					return nil, fmt.Errorf("%s uses reserved name %q", qualified, name)
+					panic(fmt.Sprintf("%s uses reserved name %q", qualified, name))
 				}
 				dupe, found := owners[name]
 				if found {
-					return nil, fmt.Errorf("%s name collides with %s", dupe, qualified)
+					panic(fmt.Sprintf("%s name collides with %s", dupe, qualified))
 				}
 				fields[name] = f
 				owners[name] = qualified
@@ -380,7 +377,7 @@ func buildFields(config any) (*ezFields, error) {
 	}
 	sort.Strings(keys)
 
-	return &ezFields{keys, fields, embedded}, nil
+	return &ezFields{keys, fields, embedded}
 }
 
 // returns whether the given field is an embedded struct, whose fields are promoted rather than it being a field itself
@@ -390,8 +387,8 @@ func isEmbeddedStruct(f *structs.Field) bool {
 
 // flattenStructs returns the struct held by the given addressable value along with every struct embedded within
 // it, at any depth, outermost first. Embedded structs must be exported and can't be pointers, as those would need
-// allocating before their fields could be set.
-func flattenStructs(v reflect.Value, path string) ([]ezStruct, error) {
+// allocating before their fields could be set, and it panics for either.
+func flattenStructs(v reflect.Value, path string) []ezStruct {
 	all := []ezStruct{{v.Addr().Interface(), path}}
 
 	t := v.Type()
@@ -401,23 +398,19 @@ func flattenStructs(v reflect.Value, path string) ([]ezStruct, error) {
 			continue
 		}
 		if ft.Type.Kind() == reflect.Pointer {
-			return nil, fmt.Errorf("embedded field %s%s must be a struct, not a pointer", path, ft.Name)
+			panic(fmt.Sprintf("embedded field %s%s must be a struct, not a pointer", path, ft.Name))
 		}
 		if ft.Type.Kind() != reflect.Struct {
 			continue
 		}
 		if !ft.IsExported() {
-			return nil, fmt.Errorf("embedded struct %s%s must be exported", path, ft.Name)
+			panic(fmt.Sprintf("embedded struct %s%s must be exported", path, ft.Name))
 		}
 
-		nested, err := flattenStructs(v.Field(i), path+ft.Name+".")
-		if err != nil {
-			return nil, err
-		}
-		all = append(all, nested...)
+		all = append(all, flattenStructs(v.Field(i), path+ft.Name+".")...)
 	}
 
-	return all, nil
+	return all
 }
 
 // utility struct for holding the snaked key, raw key (env all caps or flag) along with a read value

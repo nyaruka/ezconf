@@ -44,12 +44,7 @@ type allTypes struct {
 }
 
 func toFields(t *testing.T, s any) *ezFields {
-	fields, err := buildFields(s)
-	if err != nil {
-		t.Errorf("error building fields for %+v: %s", s, err)
-		t.FailNow()
-	}
-	return fields
+	return buildFields(s)
 }
 
 func TestSetValue(t *testing.T) {
@@ -175,20 +170,17 @@ func TestNameTagValidation(t *testing.T) {
 		})
 	}
 
-	// test that buildFields returns error for invalid name tag
+	// test that buildFields panics for invalid name tag
 	type badConfig struct {
 		F string `name:"Open-Search"`
 	}
-	_, err := buildFields(&badConfig{})
-	assert.EqualError(t, err, `invalid name tag "Open-Search" for field F, must be snake_case`)
+	assert.PanicsWithValue(t, `invalid name tag "Open-Search" for field F, must be snake_case`, func() { buildFields(&badConfig{}) })
 
 	// test that buildFields accepts valid name tag
 	type goodConfig struct {
 		F string `name:"opensearch"`
 	}
-	fields, err := buildFields(&goodConfig{})
-	assert.NoError(t, err)
-	assert.Contains(t, fields.fields, "opensearch")
+	assert.Contains(t, buildFields(&goodConfig{}).fields, "opensearch")
 }
 
 func TestNameTag(t *testing.T) {
@@ -267,21 +259,18 @@ func TestPriority(t *testing.T) {
 }
 
 func TestConfigMustBePointer(t *testing.T) {
-	// a struct passed by value isn't settable, so we reject it rather than silently discarding values
-	_, err := buildFields(allTypes{})
-	assert.EqualError(t, err, "config must be a non-nil pointer to a struct, got ezconf.allTypes")
+	// a struct passed by value isn't settable, so we panic rather than silently discarding values
+	assert.PanicsWithValue(t, "config must be a non-nil pointer to a struct, got ezconf.allTypes", func() { buildFields(allTypes{}) })
 
-	_, err = buildFields((*allTypes)(nil))
-	assert.EqualError(t, err, "config must be a non-nil pointer to a struct, got *ezconf.allTypes")
+	assert.PanicsWithValue(t, "config must be a non-nil pointer to a struct, got *ezconf.allTypes", func() { buildFields((*allTypes)(nil)) })
 
 	i := 32
-	_, err = buildFields(&i)
-	assert.EqualError(t, err, "config must be a non-nil pointer to a struct, got *int")
+	assert.PanicsWithValue(t, "config must be a non-nil pointer to a struct, got *int", func() { buildFields(&i) })
 
-	// and the loader surfaces it as an error rather than reporting a successful load
+	// and the loader surfaces it as a panic rather than reporting a successful load
 	conf := NewLoader(allTypes{}, "foo", "description", nil)
 	conf.SetArgs("-my-int=48")
-	assert.Error(t, conf.Load())
+	assert.Panics(t, func() { conf.Load() })
 }
 
 func TestReservedNames(t *testing.T) {
@@ -289,26 +278,23 @@ func TestReservedNames(t *testing.T) {
 	type helpConfig struct {
 		Help bool
 	}
-	_, err := buildFields(&helpConfig{})
-	assert.EqualError(t, err, `Help uses reserved name "help"`)
+	assert.PanicsWithValue(t, `Help uses reserved name "help"`, func() { buildFields(&helpConfig{}) })
 
 	// -h is documented as a usage alias, so a field can't claim it either
 	type hConfig struct {
 		H bool
 	}
-	_, err = buildFields(&hConfig{})
-	assert.EqualError(t, err, `H uses reserved name "h"`)
+	assert.PanicsWithValue(t, `H uses reserved name "h"`, func() { buildFields(&hConfig{}) })
 
 	type taggedConfig struct {
 		Something bool `name:"help"`
 	}
-	_, err = buildFields(&taggedConfig{})
-	assert.EqualError(t, err, `Something uses reserved name "help"`)
+	assert.PanicsWithValue(t, `Something uses reserved name "help"`, func() { buildFields(&taggedConfig{}) })
 
-	// previously this panicked inside the flag package rather than returning an error
+	// and the loader panics with the same message rather than doing so inside the flag package
 	conf := NewLoader(&helpConfig{}, "foo", "description", nil)
 	conf.SetArgs()
-	assert.EqualError(t, conf.Load(), `Help uses reserved name "help"`)
+	assert.PanicsWithValue(t, `Help uses reserved name "help"`, func() { conf.Load() })
 }
 
 func TestLoadDoesNotExit(t *testing.T) {
@@ -405,15 +391,14 @@ func TestEmbeddedStructs(t *testing.T) {
 	fields := toFields(t, &ExtendedConfig{})
 	assert.Equal(t, []string{"db", "limits_mode", "log_level", "networks", "opensearch", "sentry_dsn", "timeout"}, fields.keys)
 
-	// and the name, reserved name and collision checks apply to them too
+	// and the name, reserved name and collision checks apply to them too, panicking as they're development errors
 	type Reserved struct {
 		Help bool
 	}
 	type reservedConfig struct {
 		Reserved
 	}
-	_, err := buildFields(&reservedConfig{})
-	assert.EqualError(t, err, `Reserved.Help uses reserved name "help"`)
+	assert.PanicsWithValue(t, `Reserved.Help uses reserved name "help"`, func() { buildFields(&reservedConfig{}) })
 
 	type Tagged struct {
 		F string `name:"Bad-Name"`
@@ -421,22 +406,19 @@ func TestEmbeddedStructs(t *testing.T) {
 	type taggedConfig struct {
 		Tagged
 	}
-	_, err = buildFields(&taggedConfig{})
-	assert.EqualError(t, err, `invalid name tag "Bad-Name" for field Tagged.F, must be snake_case`)
+	assert.PanicsWithValue(t, `invalid name tag "Bad-Name" for field Tagged.F, must be snake_case`, func() { buildFields(&taggedConfig{}) })
 
 	type outerCollision struct {
 		BaseConfig
 		DB string
 	}
-	_, err = buildFields(&outerCollision{})
-	assert.EqualError(t, err, "DB name collides with BaseConfig.DB")
+	assert.PanicsWithValue(t, "DB name collides with BaseConfig.DB", func() { buildFields(&outerCollision{}) })
 
 	type nameTagCollision struct {
 		CoreConfig
 		Opensearch string
 	}
-	_, err = buildFields(&nameTagCollision{})
-	assert.EqualError(t, err, "Opensearch name collides with CoreConfig.OpenSearch")
+	assert.PanicsWithValue(t, "Opensearch name collides with CoreConfig.OpenSearch", func() { buildFields(&nameTagCollision{}) })
 
 	type A struct {
 		X int
@@ -448,15 +430,13 @@ func TestEmbeddedStructs(t *testing.T) {
 		A
 		B
 	}
-	_, err = buildFields(&embeddedCollision{})
-	assert.EqualError(t, err, "A.X name collides with B.X")
+	assert.PanicsWithValue(t, "A.X name collides with B.X", func() { buildFields(&embeddedCollision{}) })
 
 	// embedded pointers would need allocating before their fields could be set, so aren't supported
 	type pointerConfig struct {
 		*BaseConfig
 	}
-	_, err = buildFields(&pointerConfig{})
-	assert.EqualError(t, err, "embedded field BaseConfig must be a struct, not a pointer")
+	assert.PanicsWithValue(t, "embedded field BaseConfig must be a struct, not a pointer", func() { buildFields(&pointerConfig{}) })
 
 	type base struct {
 		DB string
@@ -464,13 +444,12 @@ func TestEmbeddedStructs(t *testing.T) {
 	type unexportedConfig struct {
 		base
 	}
-	_, err = buildFields(&unexportedConfig{})
-	assert.EqualError(t, err, "embedded struct base must be exported")
+	assert.PanicsWithValue(t, "embedded struct base must be exported", func() { buildFields(&unexportedConfig{}) })
 
-	// and the loader surfaces these rather than silently ignoring the embedded fields
+	// and the loader panics rather than silently ignoring the embedded fields
 	conf := NewLoader(&pointerConfig{}, "foo", "description", nil)
 	conf.SetArgs()
-	assert.EqualError(t, conf.Load(), "embedded field BaseConfig must be a struct, not a pointer")
+	assert.PanicsWithValue(t, "embedded field BaseConfig must be a struct, not a pointer", func() { conf.Load() })
 
 	// an embedded non-struct is just a field named after its type
 	type levelConfig struct {
