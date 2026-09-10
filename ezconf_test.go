@@ -44,12 +44,7 @@ type allTypes struct {
 }
 
 func toFields(t *testing.T, s any) *ezFields {
-	fields, err := buildFields(s)
-	if err != nil {
-		t.Errorf("error building fields for %+v: %s", s, err)
-		t.FailNow()
-	}
-	return fields
+	return buildFields(s)
 }
 
 func TestSetValue(t *testing.T) {
@@ -175,20 +170,17 @@ func TestNameTagValidation(t *testing.T) {
 		})
 	}
 
-	// test that buildFields returns error for invalid name tag
+	// test that buildFields panics for invalid name tag
 	type badConfig struct {
 		F string `name:"Open-Search"`
 	}
-	_, err := buildFields(&badConfig{})
-	assert.EqualError(t, err, `invalid name tag "Open-Search" for field F, must be snake_case`)
+	assert.PanicsWithValue(t, `invalid name tag "Open-Search" for field F, must be snake_case`, func() { buildFields(&badConfig{}) })
 
 	// test that buildFields accepts valid name tag
 	type goodConfig struct {
 		F string `name:"opensearch"`
 	}
-	fields, err := buildFields(&goodConfig{})
-	assert.NoError(t, err)
-	assert.Contains(t, fields.fields, "opensearch")
+	assert.Contains(t, buildFields(&goodConfig{}).fields, "opensearch")
 }
 
 func TestNameTag(t *testing.T) {
@@ -267,21 +259,18 @@ func TestPriority(t *testing.T) {
 }
 
 func TestConfigMustBePointer(t *testing.T) {
-	// a struct passed by value isn't settable, so we reject it rather than silently discarding values
-	_, err := buildFields(allTypes{})
-	assert.EqualError(t, err, "config must be a non-nil pointer to a struct, got ezconf.allTypes")
+	// a struct passed by value isn't settable, so we panic rather than silently discarding values
+	assert.PanicsWithValue(t, "config must be a non-nil pointer to a struct, got ezconf.allTypes", func() { buildFields(allTypes{}) })
 
-	_, err = buildFields((*allTypes)(nil))
-	assert.EqualError(t, err, "config must be a non-nil pointer to a struct, got *ezconf.allTypes")
+	assert.PanicsWithValue(t, "config must be a non-nil pointer to a struct, got *ezconf.allTypes", func() { buildFields((*allTypes)(nil)) })
 
 	i := 32
-	_, err = buildFields(&i)
-	assert.EqualError(t, err, "config must be a non-nil pointer to a struct, got *int")
+	assert.PanicsWithValue(t, "config must be a non-nil pointer to a struct, got *int", func() { buildFields(&i) })
 
-	// and the loader surfaces it as an error rather than reporting a successful load
+	// and the loader surfaces it as a panic rather than reporting a successful load
 	conf := NewLoader(allTypes{}, "foo", "description", nil)
 	conf.SetArgs("-my-int=48")
-	assert.Error(t, conf.Load())
+	assert.Panics(t, func() { conf.Load() })
 }
 
 func TestReservedNames(t *testing.T) {
@@ -289,26 +278,23 @@ func TestReservedNames(t *testing.T) {
 	type helpConfig struct {
 		Help bool
 	}
-	_, err := buildFields(&helpConfig{})
-	assert.EqualError(t, err, `Help uses reserved name "help"`)
+	assert.PanicsWithValue(t, `Help uses reserved name "help"`, func() { buildFields(&helpConfig{}) })
 
 	// -h is documented as a usage alias, so a field can't claim it either
 	type hConfig struct {
 		H bool
 	}
-	_, err = buildFields(&hConfig{})
-	assert.EqualError(t, err, `H uses reserved name "h"`)
+	assert.PanicsWithValue(t, `H uses reserved name "h"`, func() { buildFields(&hConfig{}) })
 
 	type taggedConfig struct {
 		Something bool `name:"help"`
 	}
-	_, err = buildFields(&taggedConfig{})
-	assert.EqualError(t, err, `Something uses reserved name "help"`)
+	assert.PanicsWithValue(t, `Something uses reserved name "help"`, func() { buildFields(&taggedConfig{}) })
 
-	// previously this panicked inside the flag package rather than returning an error
+	// and the loader panics with the same message rather than doing so inside the flag package
 	conf := NewLoader(&helpConfig{}, "foo", "description", nil)
 	conf.SetArgs()
-	assert.EqualError(t, conf.Load(), `Help uses reserved name "help"`)
+	assert.PanicsWithValue(t, `Help uses reserved name "help"`, func() { conf.Load() })
 }
 
 func TestLoadDoesNotExit(t *testing.T) {
@@ -379,4 +365,143 @@ func TestUsageFollowsStderr(t *testing.T) {
 
 	out, _ := io.ReadAll(r)
 	assert.Contains(t, string(out), "Usage of foo:")
+}
+
+// a config struct embedding another which in turn embeds another, so that fields are promoted from two levels down
+type CoreConfig struct {
+	Timeout    int    `help:"the request timeout in seconds"`
+	OpenSearch string `name:"opensearch" help:"the OpenSearch URL"`
+}
+
+type BaseConfig struct {
+	CoreConfig
+	DB       string     `help:"the database URL"`
+	LogLevel slog.Level `help:"the logging level"`
+	Networks []string
+}
+
+type ExtendedConfig struct {
+	BaseConfig
+	SentryDSN  string `help:"the Sentry DSN"`
+	LimitsMode string
+}
+
+func TestEmbeddedStructs(t *testing.T) {
+	// fields of embedded structs are discovered at any depth alongside the struct's own fields
+	fields := toFields(t, &ExtendedConfig{})
+	assert.Equal(t, []string{"db", "limits_mode", "log_level", "networks", "opensearch", "sentry_dsn", "timeout"}, fields.keys)
+
+	// and the name, reserved name and collision checks apply to them too, panicking as they're development errors
+	type Reserved struct {
+		Help bool
+	}
+	type reservedConfig struct {
+		Reserved
+	}
+	assert.PanicsWithValue(t, `Reserved.Help uses reserved name "help"`, func() { buildFields(&reservedConfig{}) })
+
+	type Tagged struct {
+		F string `name:"Bad-Name"`
+	}
+	type taggedConfig struct {
+		Tagged
+	}
+	assert.PanicsWithValue(t, `invalid name tag "Bad-Name" for field Tagged.F, must be snake_case`, func() { buildFields(&taggedConfig{}) })
+
+	type outerCollision struct {
+		BaseConfig
+		DB string
+	}
+	assert.PanicsWithValue(t, "DB name collides with BaseConfig.DB", func() { buildFields(&outerCollision{}) })
+
+	type nameTagCollision struct {
+		CoreConfig
+		Opensearch string
+	}
+	assert.PanicsWithValue(t, "Opensearch name collides with CoreConfig.OpenSearch", func() { buildFields(&nameTagCollision{}) })
+
+	type A struct {
+		X int
+	}
+	type B struct {
+		X int
+	}
+	type embeddedCollision struct {
+		A
+		B
+	}
+	assert.PanicsWithValue(t, "A.X name collides with B.X", func() { buildFields(&embeddedCollision{}) })
+
+	// embedded pointers would need allocating before their fields could be set, so aren't supported
+	type pointerConfig struct {
+		*BaseConfig
+	}
+	assert.PanicsWithValue(t, "embedded field BaseConfig must be a struct, not a pointer", func() { buildFields(&pointerConfig{}) })
+
+	type base struct {
+		DB string
+	}
+	type unexportedConfig struct {
+		base
+	}
+	assert.PanicsWithValue(t, "embedded struct base must be exported", func() { buildFields(&unexportedConfig{}) })
+
+	// and the loader panics rather than silently ignoring the embedded fields
+	conf := NewLoader(&pointerConfig{}, "foo", "description", nil)
+	conf.SetArgs()
+	assert.PanicsWithValue(t, "embedded field BaseConfig must be a struct, not a pointer", func() { conf.Load() })
+
+	// an embedded non-struct is just a field named after its type
+	type levelConfig struct {
+		slog.Level
+	}
+	fields = toFields(t, &levelConfig{})
+	assert.Equal(t, []string{"level"}, fields.keys)
+
+	// non-embedded struct fields still aren't loaded
+	type nestedConfig struct {
+		Nested CoreConfig
+	}
+	fields = toFields(t, &nestedConfig{})
+	assert.Empty(t, fields.keys)
+}
+
+func TestEmbeddedStructsEndToEnd(t *testing.T) {
+	c := &ExtendedConfig{
+		BaseConfig: BaseConfig{CoreConfig: CoreConfig{Timeout: 10}, DB: "postgres://default/db"},
+		LimitsMode: "enforce",
+	}
+	conf := NewLoader(c, "foo", "description", []string{"testdata/missing.toml", "testdata/embedded.toml"})
+	conf.SetArgs("-timeout=60", "-sentry-dsn=https://from-flag@sentry")
+	os.Setenv("FOO_DB", "postgres://from-env/db")
+	os.Setenv("FOO_OPENSEARCH", "http://from-env:9200")
+	defer os.Setenv("FOO_DB", "")
+	defer os.Setenv("FOO_OPENSEARCH", "")
+
+	assert.NoError(t, conf.Load())
+
+	// promoted fields are set from TOML, env and flags with the usual priority, regardless of depth
+	assert.Equal(t, 60, c.Timeout)
+	assert.Equal(t, "http://from-env:9200", c.OpenSearch)
+	assert.Equal(t, "postgres://from-env/db", c.DB)
+	assert.Equal(t, slog.LevelWarn, c.LogLevel)
+	assert.Equal(t, []string{"10.0.0.0/8", "192.168.0.0/16"}, c.Networks)
+	assert.Equal(t, "https://from-flag@sentry", c.SentryDSN)
+	assert.Equal(t, "observe", c.LimitsMode)
+
+	// and usage lists them alongside the struct's own fields
+	buf := &strings.Builder{}
+	conf.flags.SetOutput(buf)
+	conf.Usage()
+	assert.Contains(t, buf.String(), "-timeout int\n    \tthe request timeout in seconds (default 10)")
+	assert.Contains(t, buf.String(), "-opensearch string\n    \tthe OpenSearch URL")
+	assert.Contains(t, buf.String(), "-sentry-dsn string\n    \tthe Sentry DSN")
+	assert.Contains(t, buf.String(), "FOO_DB - string")
+	assert.Contains(t, buf.String(), "FOO_TIMEOUT - int")
+	assert.Contains(t, buf.String(), "FOO_OPENSEARCH - string")
+
+	// a TOML key that nothing defines is still an error
+	conf = NewLoader(&ExtendedConfig{}, "foo", "description", []string{"testdata/simple.toml"})
+	conf.SetArgs()
+	assert.EqualError(t, conf.Load(), "line 2: unknown key 'my_int'")
 }

@@ -62,3 +62,25 @@ func TestBuildUsage(t *testing.T) {
 
 	assert.Equal(t, stripWhitespace(expected), stripWhitespace(usage))
 }
+
+func TestParseEnvEmbedded(t *testing.T) {
+	// fields of embedded structs have env vars like any other
+	os.Setenv("FOO_TIMEOUT", "30")
+	os.Setenv("FOO_OPENSEARCH", "http://localhost:9200")
+	os.Setenv("FOO_SENTRY_DSN", "https://sentry")
+	defer os.Setenv("FOO_TIMEOUT", "")
+	defer os.Setenv("FOO_OPENSEARCH", "")
+	defer os.Setenv("FOO_SENTRY_DSN", "")
+
+	values := parseEnv("foo", toFields(t, &ExtendedConfig{}))
+	assert.Equal(t, map[string]ezValue{
+		"timeout":    {"FOO_TIMEOUT", "30"},
+		"opensearch": {"FOO_OPENSEARCH", "http://localhost:9200"},
+		"sentry_dsn": {"FOO_SENTRY_DSN", "https://sentry"},
+	}, values)
+
+	usage := buildEnvUsage("foo", toFields(t, &ExtendedConfig{}))
+	assert.Contains(t, usage, "FOO_TIMEOUT - int")
+	assert.Contains(t, usage, "FOO_OPENSEARCH - string")
+	assert.Contains(t, usage, "FOO_NETWORKS - comma separated string list")
+}
