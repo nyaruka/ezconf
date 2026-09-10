@@ -1,4 +1,4 @@
-Unreleased
+v0.8.0 (2026-09-10)
 -------------------------
  * Add support for anonymous embedded structs, whose fields are loaded as if declared on the config struct
  * Panic on config structs which can't be loaded, as that's a development error rather than a configuration one
