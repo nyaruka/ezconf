@@ -1,3 +1,7 @@
+Unreleased
+-------------------------
+ * Add support for anonymous embedded structs, whose fields are loaded as if declared on the config struct
+
 v0.7.0 (2026-08-31)
 -------------------------
  * Fix silently dropped config values when the destination isn't a settable pointer to a struct

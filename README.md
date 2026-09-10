@@ -23,6 +23,21 @@ in your struct of the following types:
  * `time.Time` as strings in the following formats: `2018-04-02`, `15:30:02`, `2018-04-02T15:30:02.000` and `2018-04-03T05:30:00.123+07:00`
  * `slog.Level` as strings e.g. `info`
 
+Anonymous embedded structs are flattened, so their fields are loaded exactly as if they were declared directly on
+your struct: the TOML key, environment variable and command line parameter for an embedded field use the field's
+own name and never that of the struct embedding it. This lets one app build on another's configuration struct
+without needing a second loader:
+
+```golang
+type Config struct {
+	base.Config          // DB, LogLevel etc are loaded as db, log_level etc
+	SentryDSN   string `help:"the Sentry DSN to report errors to"`
+}
+```
+
+Embedded structs must be exported and can't be pointers, and a name used by an embedded field can't also be used
+by the struct embedding it. Struct fields which aren't embedded are still only settable from TOML, as a table.
+
 It converts all CamelCase fields to snake_case in a manner that is compatible with the acronyms we work with
 everyday. Some examples of how a struct name is converted to a TOML field, environment variable and command
 line parameter can be found below. 

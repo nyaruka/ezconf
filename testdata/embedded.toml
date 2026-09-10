@@ -1,0 +1,8 @@
+# fields of embedded structs are set from top level keys, the same as the struct's own fields
+timeout = 30
+opensearch = "http://from-toml:9200"
+db = "postgres://from-toml/db"
+log_level = "warn"
+networks = ["10.0.0.0/8", "192.168.0.0/16"]
+sentry_dsn = "https://from-toml@sentry"
+limits_mode = "observe"

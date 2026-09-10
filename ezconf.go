@@ -127,7 +127,7 @@ func (l *Loader) Load() error {
 	}
 
 	// read any found file into our config
-	err = parseTOMLFiles(l.config, l.files)
+	err = parseTOMLFiles(fields, l.files)
 	if err != nil {
 		return err
 	}
@@ -327,10 +327,22 @@ func buildFields(config any) (*ezFields, error) {
 		return nil, fmt.Errorf("config must be a non-nil pointer to a struct, got %T", config)
 	}
 
+	// the fields of embedded structs are promoted, so we load them as if they were declared on the config
+	// struct itself, and they may only be set via their own names
+	embedded, err := flattenStructs(v.Elem(), "")
+	if err != nil {
+		return nil, err
+	}
+
 	fields := make(map[string]*structs.Field)
-	s := structs.New(config)
-	for _, f := range s.Fields() {
-		if f.IsExported() {
+	owners := make(map[string]string) // name -> qualified field name, for collision messages
+
+	for _, es := range embedded {
+		for _, f := range structs.New(es.ptr).Fields() {
+			if !f.IsExported() || isEmbeddedStruct(f) {
+				continue
+			}
+
 			switch f.Value().(type) {
 			case int, int8, int16, int32, int64,
 				uint, uint8, uint16, uint32, uint64,
@@ -341,20 +353,22 @@ func buildFields(config any) (*ezFields, error) {
 				[]int,
 				time.Time,
 				slog.Level:
+				qualified := es.path + f.Name()
 				name := f.Tag("name")
 				if name == "" {
 					name = CamelToSnake(f.Name())
 				} else if !validNameTag.MatchString(name) {
-					return nil, fmt.Errorf("invalid name tag %q for field %s, must be snake_case", name, f.Name())
+					return nil, fmt.Errorf("invalid name tag %q for field %s, must be snake_case", name, qualified)
 				}
 				if reservedNames[name] {
-					return nil, fmt.Errorf("%s uses reserved name %q", f.Name(), name)
+					return nil, fmt.Errorf("%s uses reserved name %q", qualified, name)
 				}
-				dupe, found := fields[name]
+				dupe, found := owners[name]
 				if found {
-					return nil, fmt.Errorf("%s name collides with %s", dupe.Name(), f.Name())
+					return nil, fmt.Errorf("%s name collides with %s", dupe, qualified)
 				}
 				fields[name] = f
+				owners[name] = qualified
 			}
 		}
 	}
@@ -366,7 +380,44 @@ func buildFields(config any) (*ezFields, error) {
 	}
 	sort.Strings(keys)
 
-	return &ezFields{keys, fields}, nil
+	return &ezFields{keys, fields, embedded}, nil
+}
+
+// returns whether the given field is an embedded struct, whose fields are promoted rather than it being a field itself
+func isEmbeddedStruct(f *structs.Field) bool {
+	return f.IsEmbedded() && f.Kind() == reflect.Struct
+}
+
+// flattenStructs returns the struct held by the given addressable value along with every struct embedded within
+// it, at any depth, outermost first. Embedded structs must be exported and can't be pointers, as those would need
+// allocating before their fields could be set.
+func flattenStructs(v reflect.Value, path string) ([]ezStruct, error) {
+	all := []ezStruct{{v.Addr().Interface(), path}}
+
+	t := v.Type()
+	for i := range t.NumField() {
+		ft := t.Field(i)
+		if !ft.Anonymous {
+			continue
+		}
+		if ft.Type.Kind() == reflect.Pointer {
+			return nil, fmt.Errorf("embedded field %s%s must be a struct, not a pointer", path, ft.Name)
+		}
+		if ft.Type.Kind() != reflect.Struct {
+			continue
+		}
+		if !ft.IsExported() {
+			return nil, fmt.Errorf("embedded struct %s%s must be exported", path, ft.Name)
+		}
+
+		nested, err := flattenStructs(v.Field(i), path+ft.Name+".")
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, nested...)
+	}
+
+	return all, nil
 }
 
 // utility struct for holding the snaked key, raw key (env all caps or flag) along with a read value
@@ -375,8 +426,16 @@ type ezValue struct {
 	value  string
 }
 
-// utility struct that holds our fields and an ordered list of the keys for predictable iteration
+// utility struct that holds our fields and an ordered list of the keys for predictable iteration, along with
+// the config struct and every struct embedded within it which the fields belong to
 type ezFields struct {
-	keys   []string
-	fields map[string]*structs.Field
+	keys    []string
+	fields  map[string]*structs.Field
+	structs []ezStruct
+}
+
+// utility struct for the config struct or a struct embedded within it at any depth
+type ezStruct struct {
+	ptr  any    // pointer to the struct, so that its fields are settable
+	path string // the embedded field names leading to it, e.g. "Base." or "" for the config struct itself
 }

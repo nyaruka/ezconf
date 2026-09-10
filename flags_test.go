@@ -88,3 +88,30 @@ func TestBuildFlags(t *testing.T) {
 		assert.Equal(t, tc.value, v.value, "value mismatch for key %s", tc.key)
 	}
 }
+
+func TestBuildFlagsEmbedded(t *testing.T) {
+	// fields of embedded structs get flags with their defaults and help like any other
+	c := &ExtendedConfig{BaseConfig: BaseConfig{CoreConfig: CoreConfig{Timeout: 30}, DB: "postgres://default/db"}}
+	fs := buildFlags("foo", "description", toFields(t, c), flag.ContinueOnError)
+
+	f := fs.Lookup("timeout")
+	assert.NotNil(t, f)
+	assert.Equal(t, "the request timeout in seconds", f.Usage)
+	assert.Equal(t, "30", f.DefValue)
+
+	f = fs.Lookup("opensearch")
+	assert.NotNil(t, f)
+	assert.Equal(t, "the OpenSearch URL", f.Usage)
+
+	f = fs.Lookup("db")
+	assert.NotNil(t, f)
+	assert.Equal(t, "postgres://default/db", f.DefValue)
+
+	values, err := parseFlags(fs, []string{"-timeout=60", "-db=postgres://flag/db", "-sentry-dsn=https://sentry"})
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]ezValue{
+		"timeout":    {"timeout", "60"},
+		"db":         {"db", "postgres://flag/db"},
+		"sentry_dsn": {"sentry-dsn", "https://sentry"},
+	}, values)
+}

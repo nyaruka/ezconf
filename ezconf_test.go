@@ -380,3 +380,149 @@ func TestUsageFollowsStderr(t *testing.T) {
 	out, _ := io.ReadAll(r)
 	assert.Contains(t, string(out), "Usage of foo:")
 }
+
+// a config struct embedding another which in turn embeds another, so that fields are promoted from two levels down
+type CoreConfig struct {
+	Timeout    int    `help:"the request timeout in seconds"`
+	OpenSearch string `name:"opensearch" help:"the OpenSearch URL"`
+}
+
+type BaseConfig struct {
+	CoreConfig
+	DB       string     `help:"the database URL"`
+	LogLevel slog.Level `help:"the logging level"`
+	Networks []string
+}
+
+type ExtendedConfig struct {
+	BaseConfig
+	SentryDSN  string `help:"the Sentry DSN"`
+	LimitsMode string
+}
+
+func TestEmbeddedStructs(t *testing.T) {
+	// fields of embedded structs are discovered at any depth alongside the struct's own fields
+	fields := toFields(t, &ExtendedConfig{})
+	assert.Equal(t, []string{"db", "limits_mode", "log_level", "networks", "opensearch", "sentry_dsn", "timeout"}, fields.keys)
+
+	// and the name, reserved name and collision checks apply to them too
+	type Reserved struct {
+		Help bool
+	}
+	type reservedConfig struct {
+		Reserved
+	}
+	_, err := buildFields(&reservedConfig{})
+	assert.EqualError(t, err, `Reserved.Help uses reserved name "help"`)
+
+	type Tagged struct {
+		F string `name:"Bad-Name"`
+	}
+	type taggedConfig struct {
+		Tagged
+	}
+	_, err = buildFields(&taggedConfig{})
+	assert.EqualError(t, err, `invalid name tag "Bad-Name" for field Tagged.F, must be snake_case`)
+
+	type outerCollision struct {
+		BaseConfig
+		DB string
+	}
+	_, err = buildFields(&outerCollision{})
+	assert.EqualError(t, err, "DB name collides with BaseConfig.DB")
+
+	type nameTagCollision struct {
+		CoreConfig
+		Opensearch string
+	}
+	_, err = buildFields(&nameTagCollision{})
+	assert.EqualError(t, err, "Opensearch name collides with CoreConfig.OpenSearch")
+
+	type A struct {
+		X int
+	}
+	type B struct {
+		X int
+	}
+	type embeddedCollision struct {
+		A
+		B
+	}
+	_, err = buildFields(&embeddedCollision{})
+	assert.EqualError(t, err, "A.X name collides with B.X")
+
+	// embedded pointers would need allocating before their fields could be set, so aren't supported
+	type pointerConfig struct {
+		*BaseConfig
+	}
+	_, err = buildFields(&pointerConfig{})
+	assert.EqualError(t, err, "embedded field BaseConfig must be a struct, not a pointer")
+
+	type base struct {
+		DB string
+	}
+	type unexportedConfig struct {
+		base
+	}
+	_, err = buildFields(&unexportedConfig{})
+	assert.EqualError(t, err, "embedded struct base must be exported")
+
+	// and the loader surfaces these rather than silently ignoring the embedded fields
+	conf := NewLoader(&pointerConfig{}, "foo", "description", nil)
+	conf.SetArgs()
+	assert.EqualError(t, conf.Load(), "embedded field BaseConfig must be a struct, not a pointer")
+
+	// an embedded non-struct is just a field named after its type
+	type levelConfig struct {
+		slog.Level
+	}
+	fields = toFields(t, &levelConfig{})
+	assert.Equal(t, []string{"level"}, fields.keys)
+
+	// non-embedded struct fields still aren't loaded
+	type nestedConfig struct {
+		Nested CoreConfig
+	}
+	fields = toFields(t, &nestedConfig{})
+	assert.Empty(t, fields.keys)
+}
+
+func TestEmbeddedStructsEndToEnd(t *testing.T) {
+	c := &ExtendedConfig{
+		BaseConfig: BaseConfig{CoreConfig: CoreConfig{Timeout: 10}, DB: "postgres://default/db"},
+		LimitsMode: "enforce",
+	}
+	conf := NewLoader(c, "foo", "description", []string{"testdata/missing.toml", "testdata/embedded.toml"})
+	conf.SetArgs("-timeout=60", "-sentry-dsn=https://from-flag@sentry")
+	os.Setenv("FOO_DB", "postgres://from-env/db")
+	os.Setenv("FOO_OPENSEARCH", "http://from-env:9200")
+	defer os.Setenv("FOO_DB", "")
+	defer os.Setenv("FOO_OPENSEARCH", "")
+
+	assert.NoError(t, conf.Load())
+
+	// promoted fields are set from TOML, env and flags with the usual priority, regardless of depth
+	assert.Equal(t, 60, c.Timeout)
+	assert.Equal(t, "http://from-env:9200", c.OpenSearch)
+	assert.Equal(t, "postgres://from-env/db", c.DB)
+	assert.Equal(t, slog.LevelWarn, c.LogLevel)
+	assert.Equal(t, []string{"10.0.0.0/8", "192.168.0.0/16"}, c.Networks)
+	assert.Equal(t, "https://from-flag@sentry", c.SentryDSN)
+	assert.Equal(t, "observe", c.LimitsMode)
+
+	// and usage lists them alongside the struct's own fields
+	buf := &strings.Builder{}
+	conf.flags.SetOutput(buf)
+	conf.Usage()
+	assert.Contains(t, buf.String(), "-timeout int\n    \tthe request timeout in seconds (default 10)")
+	assert.Contains(t, buf.String(), "-opensearch string\n    \tthe OpenSearch URL")
+	assert.Contains(t, buf.String(), "-sentry-dsn string\n    \tthe Sentry DSN")
+	assert.Contains(t, buf.String(), "FOO_DB - string")
+	assert.Contains(t, buf.String(), "FOO_TIMEOUT - int")
+	assert.Contains(t, buf.String(), "FOO_OPENSEARCH - string")
+
+	// a TOML key that nothing defines is still an error
+	conf = NewLoader(&ExtendedConfig{}, "foo", "description", []string{"testdata/simple.toml"})
+	conf.SetArgs()
+	assert.EqualError(t, conf.Load(), "line 2: unknown key 'my_int'")
+}
